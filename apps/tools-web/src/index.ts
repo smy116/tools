@@ -140,7 +140,7 @@ function renderNavLink(tool: ToolPage, active: boolean): string {
 
 function renderCommand(command: CommandSpec): string {
   const required = command.inputs?.map((input) => input.id).join(",") ?? "";
-  return `<article class="rounded-lg border border-line bg-white shadow-sm" data-command-card data-command-id="${escapeAttr(command.id)}">
+  return `<article class="min-w-0 overflow-hidden rounded-lg border border-line bg-white shadow-sm" data-command-card data-command-id="${escapeAttr(command.id)}">
   <div class="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
       <div class="flex flex-wrap items-center gap-2">
@@ -153,12 +153,12 @@ function renderCommand(command: CommandSpec): string {
     <button class="inline-flex h-10 shrink-0 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600" type="button" data-copy-command data-required="${escapeAttr(required)}">复制</button>
   </div>
   ${renderInputs(command)}
-  <div class="border-t border-line bg-zinc-950">
+  <div class="min-w-0 max-w-full border-t border-line bg-zinc-950">
     <div class="flex items-center justify-between border-b border-white/10 px-4 py-2">
       <span class="text-xs font-medium uppercase tracking-normal text-zinc-400">${escapeHtml(command.language)}</span>
       <span class="text-xs text-zinc-500">${escapeHtml(command.id)}</span>
     </div>
-    <pre class="command-scroll overflow-x-auto p-4 text-sm leading-6 text-emerald-50"><code data-command-output data-template="${escapeAttr(command.template)}">${escapeHtml(command.template)}</code></pre>
+    <pre class="command-scroll min-w-0 max-w-full overflow-x-auto p-4 text-sm leading-6 text-emerald-50"><code data-command-output data-template="${escapeAttr(command.template)}">${escapeHtml(command.template)}</code></pre>
   </div>
 </article>`;
 }

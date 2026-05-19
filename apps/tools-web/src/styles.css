@@ -30,7 +30,15 @@
 
 @layer components {
   .command-scroll {
+    max-width: 100%;
     scrollbar-width: thin;
     scrollbar-color: #a8a29e transparent;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .command-scroll code {
+    display: block;
+    min-width: 100%;
+    width: max-content;
   }
 }

@@ -51,11 +51,11 @@ CA_CERT_URL
 公开 GitHub 仓库可以使用 raw URL，例如：
 
 ```text
-https://raw.githubusercontent.com/<owner>/<repo>/main/linux-init/init.sh
-https://raw.githubusercontent.com/<owner>/<repo>/main/ca-install/Install-To-Linux.sh
-https://raw.githubusercontent.com/<owner>/<repo>/main/ca-install/Install-To-Windows.ps1
-https://raw.githubusercontent.com/<owner>/<repo>/main/ca-install/Install-To-Mac.sh
-https://raw.githubusercontent.com/<owner>/<repo>/main/ca-install/SMY-Root-CA.crt
+https://raw.githubusercontent.com/smy116/tools/main/linux-init/init.sh
+https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Linux.sh
+https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Windows.ps1
+https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Mac.sh
+https://raw.githubusercontent.com/smy116/tools/main/ca-install/SMY-Root-CA.crt
 ```
 
 这些变量不要填到 Build variables 里。Build variables 只在构建阶段可用，而本项目是在 Worker 运行时拉取脚本源文件。
@@ -74,11 +74,11 @@ npm run dev
 本地调试运行时变量可以放在 `apps/tools-web/.dev.vars`：
 
 ```text
-LINUX_INIT_SH_URL=https://raw.githubusercontent.com/<owner>/<repo>/main/linux-init/init.sh
-CA_INSTALL_URL_LINUX=https://raw.githubusercontent.com/<owner>/<repo>/main/ca-install/Install-To-Linux.sh
-CA_INSTALL_URL_WINDOWS=https://raw.githubusercontent.com/<owner>/<repo>/main/ca-install/Install-To-Windows.ps1
-CA_INSTALL_URL_MAC=https://raw.githubusercontent.com/<owner>/<repo>/main/ca-install/Install-To-Mac.sh
-CA_CERT_URL=https://raw.githubusercontent.com/<owner>/<repo>/main/ca-install/SMY-Root-CA.crt
+LINUX_INIT_SH_URL=https://raw.githubusercontent.com/smy116/tools/main/linux-init/init.sh
+CA_INSTALL_URL_LINUX=https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Linux.sh
+CA_INSTALL_URL_WINDOWS=https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Windows.ps1
+CA_INSTALL_URL_MAC=https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Mac.sh
+CA_CERT_URL=https://raw.githubusercontent.com/smy116/tools/main/ca-install/SMY-Root-CA.crt
 ```
 
 ## 新增工具
