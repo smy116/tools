@@ -112,14 +112,6 @@ const myToolUninstallUrl = `${origin}/source/my-tool/uninstall.sh`;
   kicker: "工具分类或用途",
   description: "用一句中文说明这个工具解决什么问题。",
   accent: "amber",
-  sourcePaths: [
-    "/source/my-tool/install.sh",
-    "/source/my-tool/uninstall.sh"
-  ],
-  runtimeVariables: [
-    "MY_TOOL_INSTALL_URL",
-    "MY_TOOL_UNINSTALL_URL"
-  ],
   commands: [
     {
       id: "my-tool-install",

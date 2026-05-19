@@ -86,7 +86,7 @@ ${renderHead(activeTool.title)}
 <body>
   <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,#ecfdf5_0,#fbfaf7_28rem,#fafaf9_55rem)]">
     ${renderHeader(activeTool, tools)}
-    <main class="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:px-8">
+    <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <section class="min-w-0">
         <div class="border-b border-line pb-7">
           <p class="${accentText(activeTool.accent)} text-sm font-semibold uppercase tracking-normal">${escapeHtml(activeTool.kicker)}</p>
@@ -97,7 +97,6 @@ ${renderHead(activeTool.title)}
           ${activeTool.commands.map((command) => renderCommand(command)).join("")}
         </div>
       </section>
-      ${renderAside(activeTool)}
     </main>
   </div>
   ${renderClientScript()}
@@ -178,33 +177,6 @@ function renderInput(commandId: string, input: CommandInput): string {
   <span>${escapeHtml(input.label)}</span>
   <input class="h-10 rounded-md border border-line bg-white px-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" type="${escapeAttr(input.type)}" placeholder="${escapeAttr(input.placeholder)}" autocomplete="off" data-command-input data-command-id="${escapeAttr(commandId)}" data-input-id="${escapeAttr(input.id)}" data-quote="${escapeAttr(input.quote)}">
 </label>`;
-}
-
-function renderAside(tool: ToolPage): string {
-  return `<aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
-  <section class="rounded-lg border border-line bg-white p-5 shadow-sm">
-    <h2 class="text-sm font-semibold uppercase tracking-normal text-zinc-500">运行时变量</h2>
-    <ul class="mt-4 space-y-2">
-      ${tool.runtimeVariables.map((name) => `<li class="rounded-md bg-stone-50 px-3 py-2 font-mono text-xs text-zinc-700">${escapeHtml(name)}</li>`).join("")}
-    </ul>
-  </section>
-  <section class="rounded-lg border border-line bg-white p-5 shadow-sm">
-    <h2 class="text-sm font-semibold uppercase tracking-normal text-zinc-500">源文件路由</h2>
-    <ul class="mt-4 space-y-3">
-      ${tool.sourcePaths.map((path) => renderSourceLink(path)).join("")}
-    </ul>
-  </section>
-</aside>`;
-}
-
-function renderSourceLink(path: SourceRoute): string {
-  const source = sourceFiles[path];
-  return `<li>
-  <a class="group block rounded-md border border-line bg-stone-50 px-3 py-2 transition hover:border-zinc-300 hover:bg-white" href="${escapeAttr(path)}">
-    <span class="block text-sm font-medium text-zinc-800 group-hover:text-zinc-950">${escapeHtml(source.label)}</span>
-    <span class="mt-1 block break-all font-mono text-xs text-zinc-500">${escapeHtml(path)}</span>
-  </a>
-</li>`;
 }
 
 function renderNotFound(tools: ToolPage[]): string {

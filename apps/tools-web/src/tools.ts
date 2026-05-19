@@ -47,8 +47,6 @@ export type ToolPage = {
   description: string;
   accent: "emerald" | "sky" | "amber";
   commands: CommandSpec[];
-  sourcePaths: SourceRoute[];
-  runtimeVariables: EnvKey[];
 };
 
 export const sourceFiles = {
@@ -101,8 +99,6 @@ export function getToolPages(origin: string): ToolPage[] {
       kicker: "VPS 初始化",
       description: "面向 Debian、Ubuntu、OpenWrt、Alpine 及兼容 Linux 服务器的初始化快捷命令。",
       accent: "emerald",
-      sourcePaths: ["/source/linux-init/init.sh"],
-      runtimeVariables: ["LINUX_INIT_SH_URL"],
       commands: [
         {
           id: "linux-menu",
@@ -185,18 +181,6 @@ export function getToolPages(origin: string): ToolPage[] {
       kicker: "根证书安装",
       description: "在 Linux、Windows 和 macOS 上安装 SMY Root Certification Authority。",
       accent: "sky",
-      sourcePaths: [
-        "/source/ca-install/linux.sh",
-        "/source/ca-install/windows.ps1",
-        "/source/ca-install/mac.sh",
-        "/source/ca-install/root-ca.crt"
-      ],
-      runtimeVariables: [
-        "CA_INSTALL_URL_LINUX",
-        "CA_INSTALL_URL_WINDOWS",
-        "CA_INSTALL_URL_MAC",
-        "CA_CERT_URL"
-      ],
       commands: [
         {
           id: "ca-linux",
