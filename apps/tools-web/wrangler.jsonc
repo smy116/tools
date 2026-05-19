@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "smy-tools-web",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-19",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/", "/tools/*", "/source/*"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}
