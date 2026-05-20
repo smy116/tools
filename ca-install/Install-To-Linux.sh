@@ -63,9 +63,18 @@ install_with_update_ca_trust() {
 }
 
 install_openwrt() {
-    local target="/etc/ssl/certs/$CERT_FILE_NAME"
+    local target="/usr/local/share/ca-certificates/$CERT_FILE_NAME"
+    local ssl_link="/etc/ssl/certs/$CERT_FILE_NAME"
+
     write_cert "$target"
-    info "Installed certificate to $target"
+    mkdir -p "$(dirname "$ssl_link")"
+    ln -sf "$target" "$ssl_link"
+
+    if has_command update-ca-certificates; then
+        update-ca-certificates
+    fi
+
+    info "Installed certificate to $target and linked it to $ssl_link"
 }
 
 to_lower() {
@@ -83,6 +92,15 @@ contains_os_word() {
     done
 
     return 1
+}
+
+is_openwrt_family() {
+    contains_os_word openwrt ||
+        contains_os_word immortalwrt ||
+        contains_os_word lede ||
+        contains_os_word owrt ||
+        [[ -f /etc/openwrt_release ]] ||
+        has_command opkg
 }
 
 if [[ "$(id -u)" -ne 0 ]]; then
@@ -113,7 +131,7 @@ elif contains_os_word centos || contains_os_word fedora || contains_os_word rhel
     install_with_update_ca_trust
 elif contains_os_word alpine; then
     install_with_update_ca_certificates
-elif contains_os_word openwrt; then
+elif is_openwrt_family; then
     install_openwrt
 elif has_command update-ca-certificates; then
     install_with_update_ca_certificates

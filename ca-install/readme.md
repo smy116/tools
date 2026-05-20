@@ -52,7 +52,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-To-Windows.ps1
 
 ## 支持范围
 
-- Linux：支持 Debian、Ubuntu、Alpine、CentOS、Fedora、RHEL、OpenWrt 及带有 `update-ca-certificates` 或 `update-ca-trust` 的兼容发行版。
+- Linux：支持 Debian、Ubuntu、Alpine、CentOS、Fedora、RHEL、OpenWrt、ImmortalWrt、LEDE 及带有 `update-ca-certificates` 或 `update-ca-trust` 的兼容发行版。
 - Windows：安装到 `LocalMachine\Root` 证书存储区，并校验证书指纹。
 - macOS：安装到系统钥匙串 `/Library/Keychains/System.keychain`。
 
