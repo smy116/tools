@@ -3,8 +3,14 @@
   "title": "linux-init",
   "category": "VPS 初始化",
   "summary": "面向 Debian、Ubuntu、OpenWrt、Alpine 及兼容 Linux 服务器的初始化脚本，提供系统时区、SSH、根证书、Nezha、Web 服务等常用操作。",
-  "platforms": ["Linux"],
-  "tags": ["root", "SSH", "服务器初始化"],
+  "platforms": [
+    "Linux"
+  ],
+  "tags": [
+    "root",
+    "SSH",
+    "服务器初始化"
+  ],
   "order": 10,
   "accent": "emerald",
   "sourceFiles": [
@@ -26,8 +32,10 @@
       "description": "打开完整初始化菜单，由脚本内菜单继续选择具体操作。",
       "platform": "Linux",
       "language": "bash",
-      "badges": ["root"],
-      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:init}}\""
+      "badges": [
+        "root"
+      ],
+      "template": "bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:init}}\""
     },
     {
       "id": "linux-ca",
@@ -35,8 +43,10 @@
       "description": "将 SMY Root Certification Authority 导入系统信任库。",
       "platform": "Linux",
       "language": "bash",
-      "badges": ["root"],
-      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" ca"
+      "badges": [
+        "root"
+      ],
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" ca"
     },
     {
       "id": "linux-sshport",
@@ -44,8 +54,11 @@
       "description": "将 SSH 端口修改为 54422，并重启 SSH 服务。",
       "platform": "Linux",
       "language": "bash",
-      "badges": ["root", "SSH"],
-      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" sshport"
+      "badges": [
+        "root",
+        "SSH"
+      ],
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" sshport"
     },
     {
       "id": "linux-root",
@@ -53,7 +66,10 @@
       "description": "设置 root 密码，并写入脚本内置的 SSH 公钥。",
       "platform": "Linux",
       "language": "bash",
-      "badges": ["root", "本地输入"],
+      "badges": [
+        "root",
+        "本地输入"
+      ],
       "inputs": [
         {
           "id": "rootPassword",
@@ -63,7 +79,7 @@
           "quote": "posix"
         }
       ],
-      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:init}}\" root {{rootPassword}}"
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:init}}\" root {{rootPassword}}"
     },
     {
       "id": "linux-nezha",
@@ -71,7 +87,10 @@
       "description": "使用你在本地输入的客户端密钥安装 Nezha Agent。",
       "platform": "Linux",
       "language": "bash",
-      "badges": ["root", "本地输入"],
+      "badges": [
+        "root",
+        "本地输入"
+      ],
       "inputs": [
         {
           "id": "nezhaSecret",
@@ -81,7 +100,7 @@
           "quote": "posix"
         }
       ],
-      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:init}}\" nezha {{nezhaSecret}}"
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:init}}\" nezha {{nezhaSecret}}"
     },
     {
       "id": "linux-caddy",
@@ -89,8 +108,10 @@
       "description": "安装 Caddy 并启动服务。",
       "platform": "Linux",
       "language": "bash",
-      "badges": ["root"],
-      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" caddy"
+      "badges": [
+        "root"
+      ],
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" caddy"
     }
   ]
 }

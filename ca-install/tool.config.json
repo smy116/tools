@@ -3,8 +3,17 @@
   "title": "ca-install",
   "category": "根证书安装",
   "summary": "把 SMY Root Certification Authority ECC 安装到 Linux、Windows 和 macOS 的系统信任库，也支持直接下载证书文件。",
-  "platforms": ["Linux", "Windows", "macOS"],
-  "tags": ["root", "sudo", "管理员", "证书"],
+  "platforms": [
+    "Linux",
+    "Windows",
+    "macOS"
+  ],
+  "tags": [
+    "root",
+    "sudo",
+    "管理员",
+    "证书"
+  ],
   "order": 20,
   "accent": "sky",
   "sourceFiles": [
@@ -56,8 +65,10 @@
       "description": "将证书安装到 Linux 系统信任库。",
       "platform": "Linux",
       "language": "bash",
-      "badges": ["root"],
-      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:linux}}\""
+      "badges": [
+        "root"
+      ],
+      "template": "bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:linux}}\""
     },
     {
       "id": "ca-windows",
@@ -65,7 +76,9 @@
       "description": "使用一行 PowerShell 命令安装到系统信任库，并自动请求管理员权限。",
       "platform": "Windows",
       "language": "powershell",
-      "badges": ["管理员"],
+      "badges": [
+        "管理员"
+      ],
       "template": "$SmyCaInstallUrl=\"{{source:windows}}\"; irm $SmyCaInstallUrl | iex"
     },
     {
@@ -74,8 +87,10 @@
       "description": "下载安装脚本，并安装到系统钥匙串。",
       "platform": "macOS",
       "language": "bash",
-      "badges": ["sudo"],
-      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:mac}}\""
+      "badges": [
+        "sudo"
+      ],
+      "template": "bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:mac}}\""
     },
     {
       "id": "ca-cert",
@@ -83,7 +98,9 @@
       "description": "直接下载 SMY Root CA 证书文件。",
       "platform": "通用",
       "language": "bash",
-      "badges": ["crt"],
+      "badges": [
+        "crt"
+      ],
       "template": "curl -fsSL {{source:cert}} -o SMY-Root-CA.crt"
     }
   ]
