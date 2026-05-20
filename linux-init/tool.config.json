@@ -27,7 +27,7 @@
       "platform": "Linux",
       "language": "bash",
       "badges": ["root"],
-      "template": "curl -fsSL {{source:init}} -o /tmp/smy-init.sh && sudo bash /tmp/smy-init.sh"
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:init}}\""
     },
     {
       "id": "linux-ca",
@@ -36,7 +36,7 @@
       "platform": "Linux",
       "language": "bash",
       "badges": ["root"],
-      "template": "curl -fsSL {{source:init}} -o /tmp/smy-init.sh && sudo bash /tmp/smy-init.sh ca"
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" ca"
     },
     {
       "id": "linux-sshport",
@@ -45,7 +45,7 @@
       "platform": "Linux",
       "language": "bash",
       "badges": ["root", "SSH"],
-      "template": "curl -fsSL {{source:init}} -o /tmp/smy-init.sh && sudo bash /tmp/smy-init.sh sshport"
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" sshport"
     },
     {
       "id": "linux-root",
@@ -63,7 +63,7 @@
           "quote": "posix"
         }
       ],
-      "template": "curl -fsSL {{source:init}} -o /tmp/smy-init.sh && sudo bash /tmp/smy-init.sh root {{rootPassword}}"
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:init}}\" root {{rootPassword}}"
     },
     {
       "id": "linux-nezha",
@@ -81,7 +81,7 @@
           "quote": "posix"
         }
       ],
-      "template": "curl -fsSL {{source:init}} -o /tmp/smy-init.sh && sudo bash /tmp/smy-init.sh nezha {{nezhaSecret}}"
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:init}}\" nezha {{nezhaSecret}}"
     },
     {
       "id": "linux-caddy",
@@ -90,7 +90,7 @@
       "platform": "Linux",
       "language": "bash",
       "badges": ["root"],
-      "template": "curl -fsSL {{source:init}} -o /tmp/smy-init.sh && sudo bash /tmp/smy-init.sh caddy"
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" caddy"
     }
   ]
 }

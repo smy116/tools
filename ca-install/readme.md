@@ -11,11 +11,10 @@
 
 ## 使用方法
 
-从工具站下载并执行 Linux 安装脚本：
+从工具站在内存中加载并执行 Linux 安装脚本：
 
 ```bash
-curl -fsSL https://<tools-origin>/source/ca-install/linux.sh -o /tmp/smy-ca-install.sh
-sudo bash /tmp/smy-ca-install.sh
+sudo bash -c 'bash <(curl -fsSL "$1")' _ "https://<tools-origin>/source/ca-install/linux.sh"
 ```
 
 从工具站在 Windows PowerShell 中安装：
@@ -24,12 +23,10 @@ sudo bash /tmp/smy-ca-install.sh
 $SmyCaInstallUrl="https://<tools-origin>/source/ca-install/windows.ps1"; irm $SmyCaInstallUrl | iex
 ```
 
-从工具站下载并执行 macOS 安装脚本：
+从工具站在内存中加载并执行 macOS 安装脚本：
 
 ```bash
-tmpdir="$(mktemp -d)"
-curl -fsSL https://<tools-origin>/source/ca-install/mac.sh -o "$tmpdir/Install-To-Mac.sh"
-sudo bash "$tmpdir/Install-To-Mac.sh"
+sudo bash -c 'bash <(curl -fsSL "$1")' _ "https://<tools-origin>/source/ca-install/mac.sh"
 ```
 
 仅下载证书文件：
@@ -37,6 +34,8 @@ sudo bash "$tmpdir/Install-To-Mac.sh"
 ```bash
 curl -fsSL https://<tools-origin>/source/ca-install/root-ca.crt -o SMY-Root-CA.crt
 ```
+
+Linux 和 macOS 的工具站安装命令使用 Bash process substitution 在内存中加载脚本，不会把安装脚本写入临时目录。证书文件下载命令会按需把 `SMY-Root-CA.crt` 保存到当前目录。
 
 如果已经克隆本仓库，也可以直接在本目录执行对应脚本：
 

@@ -70,7 +70,7 @@ my-tool/
       "platform": "Linux",
       "language": "bash",
       "badges": ["root"],
-      "template": "curl -fsSL {{source:install}} -o /tmp/my-tool-install.sh && sudo bash /tmp/my-tool-install.sh"
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:install}}\""
     }
   ]
 }
@@ -105,7 +105,7 @@ JSON:       application/json; charset=utf-8
 命令中的源文件 URL 使用 `{{source:<id>}}` 占位：
 
 ```json
-"template": "curl -fsSL {{source:install}} -o /tmp/my-tool.sh && sudo bash /tmp/my-tool.sh"
+"template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:install}}\""
 ```
 
 页面渲染时会替换为当前访问域名下的完整 URL。
@@ -129,7 +129,7 @@ JSON:       application/json; charset=utf-8
       "quote": "posix"
     }
   ],
-  "template": "curl -fsSL {{source:install}} -o /tmp/my-tool.sh && sudo bash /tmp/my-tool.sh login {{token}}"
+  "template": "sudo bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:install}}\" login {{token}}"
 }
 ```
 
@@ -137,7 +137,9 @@ JSON:       application/json; charset=utf-8
 
 命令设计建议：
 
-- 交互式脚本不要使用 `curl | bash`，优先下载到临时文件再执行。
+- 脚本执行类命令尽量不要落盘，优先使用 `sudo bash -c 'bash <(curl -fsSL "$1")' _ "<url>"`。
+- 交互式脚本不要使用 `curl | bash`，否则脚本里的 `read` 可能无法继续从终端读取输入。
+- 确实需要用户审阅、离线保存或产出文件时，再提供显式下载命令。
 - 需要 `sudo` 或管理员权限的命令，要在 `badges` 和说明中写清楚。
 - 不要在命令模板中内置密码、token、secret。
 - Windows 命令通常使用 `powershell`，可通过 `Start-Process -Verb RunAs` 触发管理员权限。

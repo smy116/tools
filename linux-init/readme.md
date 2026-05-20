@@ -20,11 +20,10 @@
 
 ## 使用方法
 
-从工具站下载并打开交互式菜单：
+从工具站在内存中加载脚本并打开交互式菜单：
 
 ```bash
-curl -fsSL https://<tools-origin>/source/linux-init/init.sh -o /tmp/smy-init.sh
-sudo bash /tmp/smy-init.sh
+sudo bash -c 'bash <(curl -fsSL "$1")' _ "https://<tools-origin>/source/linux-init/init.sh"
 ```
 
 如果已经克隆本仓库，也可以直接在本目录执行：
@@ -43,12 +42,13 @@ sudo bash init.sh nezha '<nezha-client-secret>'
 sudo bash init.sh caddy
 ```
 
-通过工具站源文件执行快捷参数时：
+通过工具站源文件在内存中执行快捷参数时：
 
 ```bash
-curl -fsSL https://<tools-origin>/source/linux-init/init.sh -o /tmp/smy-init.sh
-sudo bash /tmp/smy-init.sh ca
+sudo bash -c 'bash <(curl -fsSL "$1") "$2"' _ "https://<tools-origin>/source/linux-init/init.sh" ca
 ```
+
+工具站命令使用 Bash process substitution 在内存中加载远端脚本，不会把主脚本写入 `/tmp`。交互式菜单也可以继续从当前终端读取输入。
 
 ## 参数说明
 

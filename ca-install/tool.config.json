@@ -57,7 +57,7 @@
       "platform": "Linux",
       "language": "bash",
       "badges": ["root"],
-      "template": "curl -fsSL {{source:linux}} -o /tmp/smy-ca-install.sh && sudo bash /tmp/smy-ca-install.sh"
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:linux}}\""
     },
     {
       "id": "ca-windows",
@@ -75,7 +75,7 @@
       "platform": "macOS",
       "language": "bash",
       "badges": ["sudo"],
-      "template": "tmpdir=\"$(mktemp -d)\" && curl -fsSL {{source:mac}} -o \"$tmpdir/Install-To-Mac.sh\" && sudo bash \"$tmpdir/Install-To-Mac.sh\""
+      "template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:mac}}\""
     },
     {
       "id": "ca-cert",
