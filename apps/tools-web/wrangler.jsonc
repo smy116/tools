@@ -6,14 +6,7 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "run_worker_first": ["/", "/tools/*", "/source/*"]
-  },
-  "vars": {
-    "LINUX_INIT_SH_URL": "https://raw.githubusercontent.com/smy116/tools/main/linux-init/init.sh",
-    "CA_INSTALL_URL_LINUX": "https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Linux.sh",
-    "CA_INSTALL_URL_WINDOWS": "https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Windows.ps1",
-    "CA_INSTALL_URL_MAC": "https://raw.githubusercontent.com/smy116/tools/main/ca-install/Install-To-Mac.sh",
-    "CA_CERT_URL": "https://raw.githubusercontent.com/smy116/tools/main/ca-install/SMY-Root-CA.crt"
+    "run_worker_first": ["/", "/tools", "/tools/*", "/source/*"]
   },
   "observability": {
     "enabled": true

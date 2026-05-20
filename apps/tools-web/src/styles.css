@@ -6,8 +6,8 @@
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --color-ink: #18181b;
-  --color-paper: #fbfaf7;
-  --color-line: #e7e5e4;
+  --color-paper: #f8fafc;
+  --color-line: #e4e4e7;
   --color-accent: #047857;
   --color-accent-soft: #d1fae5;
   --color-copper: #b45309;
@@ -29,6 +29,14 @@
 }
 
 @layer components {
+  .filter-button {
+    @apply h-9 rounded-md border border-line bg-white px-3 text-sm font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-950;
+  }
+
+  .filter-button[aria-pressed="true"] {
+    @apply border-zinc-950 bg-zinc-950 text-white hover:border-zinc-950 hover:text-white;
+  }
+
   .command-scroll {
     max-width: 100%;
     scrollbar-width: thin;
@@ -40,5 +48,43 @@
     display: block;
     min-width: 100%;
     width: max-content;
+  }
+
+  .readme-content {
+    @apply min-w-0 border-t border-line pt-1 text-zinc-700;
+  }
+
+  .readme-content h2 {
+    @apply mt-7 text-xl font-semibold tracking-normal text-zinc-950;
+  }
+
+  .readme-content h3,
+  .readme-content h4 {
+    @apply mt-6 text-base font-semibold tracking-normal text-zinc-950;
+  }
+
+  .readme-content p {
+    @apply mt-3 text-sm leading-7;
+  }
+
+  .readme-content ul {
+    @apply mt-3 grid gap-2 pl-5 text-sm leading-7;
+    list-style: disc;
+  }
+
+  .readme-content a {
+    @apply font-medium text-skyline underline underline-offset-4;
+  }
+
+  .readme-content code {
+    @apply rounded border border-line bg-white px-1.5 py-0.5 font-mono text-[0.88em] text-zinc-950;
+  }
+
+  .readme-content pre {
+    @apply mt-4 max-w-full overflow-x-auto rounded-lg bg-zinc-950 p-4 text-sm leading-6 text-emerald-50;
+  }
+
+  .readme-content pre code {
+    @apply border-0 bg-transparent p-0 text-inherit;
   }
 }

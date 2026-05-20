@@ -1,18 +1,10 @@
-import {
-  getToolPages,
-  sourceFiles,
-  type CommandInput,
-  type CommandSpec,
-  type Env,
-  type SourceFile,
-  type SourceRoute,
-  type ToolPage
-} from "./tools.ts";
+import { sourceFiles, toolPages } from "./generated/tools.ts";
+import type { CommandInput, CommandSpec, Env, SourceFile, ToolPage } from "./tools.ts";
 
 const HTML_HEADERS = {
   "Content-Type": "text/html; charset=utf-8",
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
   "Referrer-Policy": "no-referrer",
   "X-Content-Type-Options": "nosniff"
 };
@@ -22,34 +14,52 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/" || url.pathname === "/tools") {
-      return Response.redirect(`${url.origin}/tools/linux-init`, 302);
+      return html(renderHome(toolPages));
     }
 
-    if (url.pathname === "/styles.css" && env.ASSETS) {
+    if ((url.pathname === "/styles.css" || url.pathname === "/client.js") && env.ASSETS) {
       return env.ASSETS.fetch(request);
     }
 
-    const source = sourceFiles[url.pathname as SourceRoute];
+    const source = sourceFiles[url.pathname];
     if (source) {
-      return proxySource(url.pathname, source, env);
+      return serveSource(request, url, source, env);
     }
 
-    const tools = getToolPages(url.origin);
-    const activeTool = tools.find((tool) => tool.route === url.pathname);
+    const activeTool = toolPages.find((tool) => tool.route === url.pathname);
     if (activeTool) {
-      return html(renderPage(activeTool, tools));
+      return html(renderToolPage(activeTool, toolPages, url.origin));
     }
 
-    return html(renderNotFound(tools), 404);
+    return html(renderNotFound(toolPages), 404);
   }
 };
 
-async function proxySource(pathname: string, source: SourceFile, env: Env): Promise<Response> {
-  const sourceUrl = env[source.envKey];
-  if (!sourceUrl) {
-    return text(`缺少 ${pathname} 对应的运行时变量 ${source.envKey}。`, 500);
+async function serveSource(request: Request, url: URL, source: SourceFile, env: Env): Promise<Response> {
+  if (source.delivery === "asset" && env.ASSETS) {
+    const asset = await env.ASSETS.fetch(
+      new Request(`${url.origin}${source.route}`, {
+        method: request.method,
+        headers: request.headers
+      })
+    );
+    if (asset.ok) {
+      return withSourceHeaders(asset, source);
+    }
   }
 
+  const remoteUrl = source.envKey ? env[source.envKey] : undefined;
+  if (typeof remoteUrl === "string" && remoteUrl) {
+    return proxyRemoteSource(source, remoteUrl);
+  }
+
+  const detail = source.envKey
+    ? `本地静态资源不可用，且运行时变量 ${source.envKey} 未配置。`
+    : "本地静态资源不可用。";
+  return text(`无法获取 ${source.route}。${detail}`, 404);
+}
+
+async function proxyRemoteSource(source: SourceFile, sourceUrl: string): Promise<Response> {
   let upstream: Response;
   try {
     upstream = await fetch(sourceUrl, {
@@ -67,56 +77,164 @@ async function proxySource(pathname: string, source: SourceFile, env: Env): Prom
     return text(`上游 ${source.envKey} 返回 ${upstream.status} ${upstream.statusText}。${detail}`, 502);
   }
 
-  const headers = new Headers();
+  return withSourceHeaders(upstream, source);
+}
+
+function withSourceHeaders(response: Response, source: SourceFile): Response {
+  const headers = new Headers(response.headers);
   headers.set("Content-Type", source.contentType);
   headers.set("Content-Disposition", `attachment; filename="${source.filename}"`);
-  headers.set("Cache-Control", "no-store");
+  headers.set("Cache-Control", "public, max-age=300");
   headers.set("X-Content-Type-Options", "nosniff");
 
-  return new Response(upstream.body, {
-    status: 200,
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
     headers
   });
 }
 
-function renderPage(activeTool: ToolPage, tools: ToolPage[]): string {
+function renderHome(tools: ToolPage[]): string {
+  const platforms = unique(tools.flatMap((tool) => tool.platforms));
+
   return `<!doctype html>
 <html lang="zh-CN">
-${renderHead(activeTool.title)}
+${renderHead("工具列表", "SMY 工具站收纳脚本工具、安装命令和源文件下载。")}
 <body>
-  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,#ecfdf5_0,#fbfaf7_28rem,#fafaf9_55rem)]">
-    ${renderHeader(activeTool, tools)}
-    <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <section class="min-w-0">
-        <div class="border-b border-line pb-7">
-          <p class="${accentText(activeTool.accent)} text-sm font-semibold uppercase tracking-normal">${escapeHtml(activeTool.kicker)}</p>
-          <h1 class="mt-2 text-4xl font-semibold tracking-normal text-zinc-950 sm:text-5xl">${escapeHtml(activeTool.title)}</h1>
-          <p class="mt-4 max-w-3xl text-base leading-7 text-zinc-600">${escapeHtml(activeTool.description)}</p>
+  <div class="min-h-screen bg-paper">
+    ${renderHeader(null, tools)}
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section class="grid gap-6 border-b border-line pb-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-accent">Cloudflare Worker 工具入口</p>
+          <h1 class="mt-2 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">SMY 工具站</h1>
+          <p class="mt-4 max-w-3xl text-base leading-7 text-zinc-600">集中展示每个工具的用途、适用平台、权限风险、源文件和一键命令。新增工具时只需要维护工具目录里的 README 与配置文件。</p>
         </div>
-        <div class="mt-6 grid gap-4">
-          ${activeTool.commands.map((command) => renderCommand(command)).join("")}
+        <div class="grid gap-3">
+          <label class="grid gap-1.5 text-sm font-medium text-zinc-700">
+            <span>搜索工具</span>
+            <input class="h-11 rounded-md border border-line bg-white px-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" type="search" placeholder="按名称、平台、用途或标签搜索" data-tool-search>
+          </label>
+          <div class="flex flex-wrap gap-2" aria-label="按平台筛选">
+            <button class="filter-button" type="button" data-platform-filter="all" aria-pressed="true">全部</button>
+            ${platforms.map((platform) => `<button class="filter-button" type="button" data-platform-filter="${escapeAttr(platform)}" aria-pressed="false">${escapeHtml(platform)}</button>`).join("")}
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-7">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h2 class="text-base font-semibold text-zinc-950">工具列表</h2>
+          <p class="text-sm text-zinc-500"><span data-tool-count>${tools.length}</span> 个工具</p>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          ${tools.map((tool) => renderToolCard(tool)).join("")}
         </div>
       </section>
     </main>
   </div>
-  ${renderClientScript()}
 </body>
 </html>`;
 }
 
-function renderHead(title: string): string {
-  return `<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(title)} | SMY 工具</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>`;
+function renderToolCard(tool: ToolPage): string {
+  const searchText = [tool.title, tool.category, tool.summary, ...tool.platforms, ...tool.tags].join(" ");
+
+  return `<article class="min-w-0 rounded-lg border border-line bg-white p-5 shadow-sm" data-tool-card data-platforms="${escapeAttr(tool.platforms.join(","))}" data-search="${escapeAttr(searchText)}">
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <p class="${accentText(tool.accent)} text-sm font-semibold">${escapeHtml(tool.category)}</p>
+      <h3 class="mt-1 text-xl font-semibold tracking-normal text-zinc-950">${escapeHtml(tool.title)}</h3>
+    </div>
+    <span class="rounded-md border border-line bg-stone-50 px-2 py-1 text-xs font-medium text-zinc-600">${tool.commands.length} 条命令</span>
+  </div>
+  <p class="mt-3 text-sm leading-6 text-zinc-600">${escapeHtml(tool.summary)}</p>
+  <div class="mt-4 flex flex-wrap gap-2">
+    ${tool.platforms.map((platform) => renderBadge(platform, "neutral")).join("")}
+    ${tool.tags.slice(0, 4).map((tag) => renderBadge(tag, "soft")).join("")}
+  </div>
+  <a class="mt-5 inline-flex h-10 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800" href="${escapeAttr(tool.route)}">打开工具</a>
+</article>`;
 }
 
-function renderHeader(activeTool: ToolPage, tools: ToolPage[]): string {
-  return `<header class="sticky top-0 z-20 border-b border-line bg-paper/90 backdrop-blur">
+function renderToolPage(activeTool: ToolPage, tools: ToolPage[], origin: string): string {
+  return `<!doctype html>
+<html lang="zh-CN">
+${renderHead(activeTool.title, activeTool.summary)}
+<body>
+  <div class="min-h-screen bg-paper">
+    ${renderHeader(activeTool, tools)}
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section class="border-b border-line pb-7">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div class="min-w-0">
+            <p class="${accentText(activeTool.accent)} text-sm font-semibold">${escapeHtml(activeTool.category)}</p>
+            <h1 class="mt-2 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">${escapeHtml(activeTool.title)}</h1>
+            <p class="mt-4 max-w-3xl text-base leading-7 text-zinc-600">${escapeHtml(activeTool.summary)}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            ${activeTool.platforms.map((platform) => renderBadge(platform, "neutral")).join("")}
+            ${activeTool.tags.map((tag) => renderBadge(tag, "soft")).join("")}
+          </div>
+        </div>
+      </section>
+
+      <div class="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        <div class="min-w-0">
+          <section>
+            <div class="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-zinc-500">Shortcuts</p>
+                <h2 class="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">一键命令</h2>
+              </div>
+              <span class="text-sm text-zinc-500">${activeTool.commands.length} 条</span>
+            </div>
+            <div class="grid gap-4">
+              ${activeTool.commands.map((command) => renderCommand(command, activeTool, origin)).join("")}
+            </div>
+          </section>
+
+          <section class="mt-10">
+            <div class="mb-4">
+              <p class="text-sm font-semibold text-zinc-500">README</p>
+              <h2 class="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">完整说明</h2>
+            </div>
+            <article class="readme-content">
+              ${activeTool.readmeHtml}
+            </article>
+          </section>
+        </div>
+
+        <aside class="grid gap-4 lg:sticky lg:top-24">
+          ${renderSourcePanel(activeTool, origin)}
+          <section class="rounded-lg border border-line bg-white p-4 shadow-sm">
+            <h2 class="text-sm font-semibold text-zinc-950">维护入口</h2>
+            <p class="mt-2 text-sm leading-6 text-zinc-600">页面内容由工具目录下的 <code>readme.md</code> 和 <code>tool.config.json</code> 生成。</p>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</body>
+</html>`;
+}
+
+function renderSourcePanel(tool: ToolPage, origin: string): string {
+  return `<section class="rounded-lg border border-line bg-white p-4 shadow-sm">
+  <h2 class="text-sm font-semibold text-zinc-950">源文件</h2>
+  <div class="mt-3 grid gap-3">
+    ${tool.sourceFiles.map((source) => `<a class="block rounded-md border border-line bg-stone-50 p-3 transition hover:border-zinc-300 hover:bg-white" href="${escapeAttr(source.route)}">
+      <span class="block text-sm font-semibold text-zinc-950">${escapeHtml(source.label)}</span>
+      <span class="mt-1 block break-all text-xs leading-5 text-zinc-500">${escapeHtml(`${origin}${source.route}`)}</span>
+    </a>`).join("")}
+  </div>
+</section>`;
+}
+
+function renderHeader(activeTool: ToolPage | null, tools: ToolPage[]): string {
+  return `<header class="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
   <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-    <a href="/tools/linux-init" class="flex items-center gap-3 text-zinc-950">
+    <a href="/tools" class="flex items-center gap-3 text-zinc-950">
       <span class="grid size-9 place-items-center rounded-md bg-zinc-950 text-sm font-semibold text-white">SMY</span>
       <span>
         <span class="block text-sm font-semibold leading-5">SMY 工具站</span>
@@ -124,40 +242,43 @@ function renderHeader(activeTool: ToolPage, tools: ToolPage[]): string {
       </span>
     </a>
     <nav aria-label="工具导航" class="flex gap-1 overflow-x-auto">
-      ${tools.map((tool) => renderNavLink(tool, tool.slug === activeTool.slug)).join("")}
+      ${renderNavLink("/tools", "全部工具", activeTool === null)}
+      ${tools.map((tool) => renderNavLink(tool.route, tool.title, tool.slug === activeTool?.slug)).join("")}
     </nav>
   </div>
 </header>`;
 }
 
-function renderNavLink(tool: ToolPage, active: boolean): string {
+function renderNavLink(route: string, label: string, active: boolean): string {
   const activeClass = active
     ? "border-zinc-950 bg-zinc-950 text-white"
     : "border-transparent text-zinc-600 hover:border-line hover:bg-white hover:text-zinc-950";
-  return `<a class="${activeClass} whitespace-nowrap rounded-md border px-3 py-2 text-sm font-medium transition" href="${escapeAttr(tool.route)}">${escapeHtml(tool.title)}</a>`;
+  return `<a class="${activeClass} whitespace-nowrap rounded-md border px-3 py-2 text-sm font-medium transition" href="${escapeAttr(route)}">${escapeHtml(label)}</a>`;
 }
 
-function renderCommand(command: CommandSpec): string {
+function renderCommand(command: CommandSpec, tool: ToolPage, origin: string): string {
   const required = command.inputs?.map((input) => input.id).join(",") ?? "";
+  const template = resolveSourcePlaceholders(command.template, tool, origin);
+
   return `<article class="min-w-0 overflow-hidden rounded-lg border border-line bg-white shadow-sm" data-command-card data-command-id="${escapeAttr(command.id)}">
   <div class="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="rounded-md border border-line bg-stone-50 px-2 py-1 text-xs font-medium text-zinc-600">${escapeHtml(command.platform)}</span>
-        ${command.badges?.map((badge) => `<span class="rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">${escapeHtml(badge)}</span>`).join("") ?? ""}
+        ${renderBadge(command.platform, "neutral")}
+        ${command.badges?.map((badge) => renderBadge(badge, "soft")).join("") ?? ""}
       </div>
-      <h2 class="mt-3 text-xl font-semibold tracking-normal text-zinc-950">${escapeHtml(command.title)}</h2>
+      <h3 class="mt-3 text-xl font-semibold tracking-normal text-zinc-950">${escapeHtml(command.title)}</h3>
       <p class="mt-2 text-sm leading-6 text-zinc-600">${escapeHtml(command.description)}</p>
     </div>
     <button class="inline-flex h-10 shrink-0 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600" type="button" data-copy-command data-required="${escapeAttr(required)}">复制</button>
   </div>
   ${renderInputs(command)}
   <div class="min-w-0 max-w-full border-t border-line bg-zinc-950">
-    <div class="flex items-center justify-between border-b border-white/10 px-4 py-2">
+    <div class="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-2">
       <span class="text-xs font-medium uppercase tracking-normal text-zinc-400">${escapeHtml(command.language)}</span>
-      <span class="text-xs text-zinc-500">${escapeHtml(command.id)}</span>
+      <span class="truncate text-xs text-zinc-500">${escapeHtml(command.id)}</span>
     </div>
-    <pre class="command-scroll min-w-0 max-w-full overflow-x-auto p-4 text-sm leading-6 text-emerald-50"><code data-command-output data-template="${escapeAttr(command.template)}">${escapeHtml(command.template)}</code></pre>
+    <pre class="command-scroll min-w-0 max-w-full overflow-x-auto p-4 text-sm leading-6 text-emerald-50"><code data-command-output data-template="${escapeAttr(template)}">${escapeHtml(template)}</code></pre>
   </div>
 </article>`;
 }
@@ -182,93 +303,45 @@ function renderInput(commandId: string, input: CommandInput): string {
 function renderNotFound(tools: ToolPage[]): string {
   return `<!doctype html>
 <html lang="zh-CN">
-${renderHead("页面不存在")}
+${renderHead("页面不存在", "请求的工具页面不存在。")}
 <body>
   <div class="min-h-screen bg-paper">
-    ${renderHeader(tools[0], tools)}
+    ${renderHeader(null, tools)}
     <main class="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <p class="text-sm font-semibold uppercase tracking-normal text-zinc-500">404</p>
       <h1 class="mt-2 text-3xl font-semibold tracking-normal text-zinc-950">页面不存在</h1>
       <p class="mt-4 text-zinc-600">请求的工具页面不存在。</p>
-      <a class="mt-6 inline-flex h-10 items-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white" href="/tools/linux-init">打开 linux-init</a>
+      <a class="mt-6 inline-flex h-10 items-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white" href="/tools">打开工具列表</a>
     </main>
   </div>
 </body>
 </html>`;
 }
 
-function renderClientScript(): string {
-  return `<script>
-(() => {
-  const shellQuote = (value) => "'" + value.replace(/'/g, "'\\\\''") + "'";
-  const fallbackToken = (id) => "<" + id.replace(/[A-Z]/g, (letter) => "-" + letter.toLowerCase()) + ">";
+function renderHead(title: string, description: string): string {
+  return `<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="${escapeAttr(description)}">
+  <title>${escapeHtml(title)} | SMY 工具</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script defer src="/client.js"></script>
+</head>`;
+}
 
-  const renderCommand = (card) => {
-    const output = card.querySelector("[data-command-output]");
-    const button = card.querySelector("[data-copy-command]");
-    if (!output || !button) return;
-
-    let command = output.dataset.template || "";
-    let complete = true;
-
-    card.querySelectorAll("[data-command-input]").forEach((input) => {
-      const id = input.dataset.inputId;
-      if (!id) return;
-
-      const value = input.value;
-      const replacement = value ? shellQuote(value) : fallbackToken(id);
-      command = command.replaceAll("{{" + id + "}}", replacement);
-      if (!value) complete = false;
-    });
-
-    output.textContent = command;
-    button.disabled = !complete;
-    if (!complete) {
-      button.textContent = "填写参数";
-    } else if (button.dataset.copied !== "true") {
-      button.textContent = "复制";
-    }
-  };
-
-  const copyText = async (text) => {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return;
-    }
-
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand("copy");
-    textarea.remove();
-  };
-
-  document.querySelectorAll("[data-command-card]").forEach((card) => {
-    renderCommand(card);
-
-    card.querySelectorAll("[data-command-input]").forEach((input) => {
-      input.addEventListener("input", () => renderCommand(card));
-    });
-
-    const button = card.querySelector("[data-copy-command]");
-    const output = card.querySelector("[data-command-output]");
-    button?.addEventListener("click", async () => {
-      if (!output || button.disabled) return;
-      await copyText(output.textContent || "");
-      button.dataset.copied = "true";
-      button.textContent = "已复制";
-      window.setTimeout(() => {
-        button.dataset.copied = "false";
-        renderCommand(card);
-      }, 1400);
-    });
+function resolveSourcePlaceholders(template: string, tool: ToolPage, origin: string): string {
+  return template.replace(/\{\{source:([^}]+)\}\}/g, (_match, sourceId: string) => {
+    const source = tool.sourceFiles.find((item) => item.id === sourceId);
+    return source ? `${origin}${source.route}` : `<missing-source:${sourceId}>`;
   });
-})();
-</script>`;
+}
+
+function renderBadge(value: string, tone: "neutral" | "soft"): string {
+  const classes =
+    tone === "neutral"
+      ? "rounded-md border border-line bg-stone-50 px-2 py-1 text-xs font-medium text-zinc-600"
+      : "rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800";
+  return `<span class="${classes}">${escapeHtml(value)}</span>`;
 }
 
 function accentText(accent: ToolPage["accent"]): string {
@@ -280,6 +353,10 @@ function accentText(accent: ToolPage["accent"]): string {
     default:
       return "text-accent";
   }
+}
+
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
 }
 
 function html(body: string, status = 200): Response {

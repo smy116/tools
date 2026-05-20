@@ -1,0 +1,90 @@
+{
+  "slug": "ca-install",
+  "title": "ca-install",
+  "category": "根证书安装",
+  "summary": "把 SMY Root Certification Authority ECC 安装到 Linux、Windows 和 macOS 的系统信任库，也支持直接下载证书文件。",
+  "platforms": ["Linux", "Windows", "macOS"],
+  "tags": ["root", "sudo", "管理员", "证书"],
+  "order": 20,
+  "accent": "sky",
+  "sourceFiles": [
+    {
+      "id": "linux",
+      "path": "Install-To-Linux.sh",
+      "route": "/source/ca-install/linux.sh",
+      "filename": "Install-To-Linux.sh",
+      "contentType": "text/x-shellscript; charset=utf-8",
+      "label": "Linux CA 安装脚本",
+      "delivery": "asset",
+      "envKey": "CA_INSTALL_URL_LINUX"
+    },
+    {
+      "id": "windows",
+      "path": "Install-To-Windows.ps1",
+      "route": "/source/ca-install/windows.ps1",
+      "filename": "Install-To-Windows.ps1",
+      "contentType": "text/plain; charset=utf-8",
+      "label": "Windows CA 安装脚本",
+      "delivery": "asset",
+      "envKey": "CA_INSTALL_URL_WINDOWS"
+    },
+    {
+      "id": "mac",
+      "path": "Install-To-Mac.sh",
+      "route": "/source/ca-install/mac.sh",
+      "filename": "Install-To-Mac.sh",
+      "contentType": "text/x-shellscript; charset=utf-8",
+      "label": "macOS CA 安装脚本",
+      "delivery": "asset",
+      "envKey": "CA_INSTALL_URL_MAC"
+    },
+    {
+      "id": "cert",
+      "path": "SMY-Root-CA.crt",
+      "route": "/source/ca-install/root-ca.crt",
+      "filename": "SMY-Root-CA.crt",
+      "contentType": "application/x-x509-ca-cert",
+      "label": "SMY 根证书文件",
+      "delivery": "asset",
+      "envKey": "CA_CERT_URL"
+    }
+  ],
+  "commands": [
+    {
+      "id": "ca-linux",
+      "title": "Linux 安装",
+      "description": "将证书安装到 Linux 系统信任库。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": ["root"],
+      "template": "curl -fsSL {{source:linux}} -o /tmp/smy-ca-install.sh && sudo bash /tmp/smy-ca-install.sh"
+    },
+    {
+      "id": "ca-windows",
+      "title": "Windows 安装",
+      "description": "使用一行 PowerShell 命令安装到系统信任库，并自动请求管理员权限。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": ["管理员"],
+      "template": "$SmyCaInstallUrl=\"{{source:windows}}\"; irm $SmyCaInstallUrl | iex"
+    },
+    {
+      "id": "ca-macos",
+      "title": "macOS 安装",
+      "description": "下载安装脚本，并安装到系统钥匙串。",
+      "platform": "macOS",
+      "language": "bash",
+      "badges": ["sudo"],
+      "template": "tmpdir=\"$(mktemp -d)\" && curl -fsSL {{source:mac}} -o \"$tmpdir/Install-To-Mac.sh\" && sudo bash \"$tmpdir/Install-To-Mac.sh\""
+    },
+    {
+      "id": "ca-cert",
+      "title": "证书文件",
+      "description": "直接下载 SMY Root CA 证书文件。",
+      "platform": "通用",
+      "language": "bash",
+      "badges": ["crt"],
+      "template": "curl -fsSL {{source:cert}} -o SMY-Root-CA.crt"
+    }
+  ]
+}

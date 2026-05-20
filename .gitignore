@@ -3,3 +3,5 @@ node_modules/
 .dev.vars
 dist/
 *.log
+apps/tools-web/src/generated/
+apps/tools-web/public/source/

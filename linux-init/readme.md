@@ -2,6 +2,12 @@
 
 `linux-init` 是 VPS 和轻量 Linux 主机的初始化脚本，面向 Debian、Ubuntu、OpenWrt、Alpine 及兼容发行版。它提供交互式菜单，也支持部分操作通过命令参数直接执行。
 
+## 文件说明
+
+- `init.sh`：主初始化脚本，包含交互式菜单和快捷参数入口。
+- `nginx/nginx.conf`：安装 Nginx 时使用的默认配置模板。
+- `nginx/fake-page.tar.gz`：Nginx 默认站点的静态页面资源。
+
 ## 主要功能
 
 - 设置系统时区为 UTC+8。

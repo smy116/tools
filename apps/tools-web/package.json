@@ -4,11 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run build:css && npm run typecheck",
+    "build": "npm run build:tools && npm run build:css && npm run typecheck:ts",
+    "build:tools": "node ./scripts/build-tools.mjs",
     "build:css": "tailwindcss -i ./src/styles.css -o ./public/styles.css --minify",
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "typecheck": "tsc --noEmit"
+    "dev": "npm run build:tools && npm run build:css && wrangler dev",
+    "typecheck": "npm run build:tools && npm run typecheck:ts",
+    "typecheck:ts": "tsc --noEmit"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.0",

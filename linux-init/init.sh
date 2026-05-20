@@ -513,9 +513,9 @@ create_caddy_config() {
     mkdir -p /etc/caddy
 
     # download html
-    if curl -fsSL -o html.tar.gz https://cdn.jsdelivr.net/gh/smy116/RootCA@main/nginx/html.tar.gz; then
-        tar -zxvf html.tar.gz -C /usr/share/nginx/html
-        rm -rf html.tar.gz
+    if curl -fsSL -o fake-page.tar.gz https://cdn.jsdelivr.net/gh/smy116/tools@main/linux-init/nginx/fake-page.tar.gz; then
+        tar -zxvf fake-page.tar.gz -C /usr/share/nginx/html
+        rm -rf fake-page.tar.gz
     else
         yellow "Failed to download HTML package, skipping..."
     fi
@@ -600,9 +600,9 @@ create_nginx_config() {
     mkdir -p /usr/share/nginx/html
 
     # download html
-    if curl -fsSL -o html.tar.gz https://cdn.jsdelivr.net/gh/smy116/RootCA@main/nginx/html.tar.gz; then
-        tar -zxvf html.tar.gz -C /usr/share/nginx/html
-        rm -rf html.tar.gz
+    if curl -fsSL -o fake-page.tar.gz https://cdn.jsdelivr.net/gh/smy116/tools@main/linux-init/nginx/fake-page.tar.gz; then
+        tar -zxvf fake-page.tar.gz -C /usr/share/nginx/html
+        rm -rf fake-page.tar.gz
     else
         yellow "Failed to download HTML package, skipping..."
     fi
