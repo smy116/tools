@@ -1,0 +1,90 @@
+{
+  "slug": "vhd-bitlocker",
+  "title": "vhd-bitlocker",
+  "category": "Windows 加密磁盘",
+  "summary": "在 Windows 上一键挂载或卸载固定 VHDX，并自动解锁或锁定其中的 BitLocker 卷。",
+  "platforms": [
+    "Windows"
+  ],
+  "tags": [
+    "VHDX",
+    "BitLocker",
+    "管理员",
+    "PowerShell",
+    "DPAPI"
+  ],
+  "order": 50,
+  "accent": "emerald",
+  "sourceFiles": [
+    {
+      "id": "package",
+      "path": "vhd-bitlocker.zip",
+      "route": "/source/vhd-bitlocker/vhd-bitlocker.zip",
+      "filename": "vhd-bitlocker.zip",
+      "contentType": "application/zip",
+      "label": "vhd-bitlocker Windows 工具包",
+      "delivery": "asset",
+      "envKey": "VHD_BITLOCKER_ZIP_URL"
+    }
+  ],
+  "commands": [
+    {
+      "id": "vhd-bitlocker-download",
+      "title": "下载并解压工具包",
+      "description": "下载 vhd-bitlocker Windows 工具包到当前目录，并解压出可双击使用的脚本文件。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "zip",
+        "需配置"
+      ],
+      "template": "Invoke-WebRequest -Uri \"{{source:package}}\" -OutFile \".\\vhd-bitlocker.zip\"; Expand-Archive -LiteralPath \".\\vhd-bitlocker.zip\" -DestinationPath \".\" -Force"
+    },
+    {
+      "id": "vhd-bitlocker-edit-config",
+      "title": "创建并编辑配置",
+      "description": "进入解压后的工具目录，按样例创建 config.ini，并用记事本编辑 VHDX 路径和安全卸载选项。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "本机配置"
+      ],
+      "template": "Set-Location \".\\vhd-bitlocker\"; if (-not (Test-Path -LiteralPath \".\\config.ini\")) { Copy-Item -LiteralPath \".\\config.sample.ini\" -Destination \".\\config.ini\" }; notepad \".\\config.ini\""
+    },
+    {
+      "id": "vhd-bitlocker-toggle",
+      "title": "打开或关闭加密磁盘",
+      "description": "执行本地 start.cmd：未挂载时挂载并解锁，已挂载时锁定并卸载；需要时会触发 UAC 管理员确认。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "管理员",
+        "BitLocker"
+      ],
+      "template": ".\\vhd-bitlocker\\start.cmd"
+    },
+    {
+      "id": "vhd-bitlocker-status",
+      "title": "查看当前状态",
+      "description": "只查看 VHDX 是否挂载、盘符和 BitLocker 锁定状态，不会修改磁盘状态。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "只读"
+      ],
+      "template": ".\\vhd-bitlocker\\status.cmd"
+    },
+    {
+      "id": "vhd-bitlocker-reset-password",
+      "title": "重新保存密码",
+      "description": "当 BitLocker 密码改过、输错过，或想重新保存本机 DPAPI 密文时执行。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "本地输入",
+        "DPAPI"
+      ],
+      "template": ".\\vhd-bitlocker\\reset-password.cmd"
+    }
+  ]
+}
