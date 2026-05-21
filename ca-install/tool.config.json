@@ -2,17 +2,21 @@
   "slug": "ca-install",
   "title": "ca-install",
   "category": "根证书安装",
-  "summary": "把 SMY Root Certification Authority ECC 安装到 Linux、Windows 和 macOS 的系统信任库，也支持直接下载证书文件。",
+  "summary": "把 SMY Root Certification Authority ECC 安装到 Linux、Windows、macOS 和 Android 的系统信任库，也支持直接下载证书文件。",
   "platforms": [
     "Linux",
     "Windows",
-    "macOS"
+    "macOS",
+    "Android"
   ],
   "tags": [
     "root",
     "sudo",
     "管理员",
-    "证书"
+    "证书",
+    "Magisk",
+    "KernelSU",
+    "APatch"
   ],
   "order": 20,
   "accent": "sky",
@@ -56,6 +60,16 @@
       "label": "SMY 根证书文件",
       "delivery": "asset",
       "envKey": "CA_CERT_URL"
+    },
+    {
+      "id": "androidModule",
+      "path": "magisk-android.zip",
+      "route": "/source/ca-install/magisk-android.zip",
+      "filename": "magisk-android.zip",
+      "contentType": "application/zip",
+      "label": "Android Root CA 模块",
+      "delivery": "asset",
+      "envKey": "CA_ANDROID_MODULE_URL"
     }
   ],
   "commands": [
@@ -102,6 +116,20 @@
         "crt"
       ],
       "template": "curl -fsSL {{source:cert}} -o SMY-Root-CA.crt"
+    },
+    {
+      "id": "ca-android-module",
+      "title": "Android 模块",
+      "description": "下载可在 Magisk、KernelSU 或 APatch 中安装的 Android Root CA 模块。",
+      "platform": "Android",
+      "language": "bash",
+      "badges": [
+        "Magisk",
+        "KernelSU",
+        "APatch",
+        "root"
+      ],
+      "template": "curl -fsSL {{source:androidModule}} -o magisk-android.zip"
     }
   ]
 }

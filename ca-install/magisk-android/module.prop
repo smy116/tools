@@ -1,0 +1,6 @@
+id=smyrootca
+name=SMY Root CA Installer
+version=v1.0.0
+versionCode=1
+author=SMY
+description=Install SMY Root Certification Authority ECC into the Android system trust store for Magisk, KernelSU, and APatch.

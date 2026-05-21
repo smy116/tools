@@ -10,7 +10,7 @@
 linux-init/               VPS 初始化脚本源文件
   readme.md               面向使用者的说明文档
   tool.config.json        前端展示和命令配置
-ca-install/               CA 证书安装脚本源文件
+ca-install/               CA 证书安装脚本和 Android Root CA 模块源文件
 apps/tools-web/           Cloudflare Worker 前端项目
 docs/                     项目维护文档
 ```
