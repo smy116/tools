@@ -28,10 +28,10 @@ export default {
 
     const activeTool = toolPages.find((tool) => tool.route === url.pathname);
     if (activeTool) {
-      return html(renderToolPage(activeTool, toolPages, url.origin));
+      return html(renderToolPage(activeTool, url.origin));
     }
 
-    return html(renderNotFound(toolPages), 404);
+    return html(renderNotFound(), 404);
   }
 };
 
@@ -95,29 +95,17 @@ function withSourceHeaders(response: Response, source: SourceFile): Response {
 }
 
 function renderHome(tools: ToolPage[]): string {
-  const platforms = unique(tools.flatMap((tool) => tool.platforms));
-
   return `<!doctype html>
 <html lang="zh-CN">
 ${renderHead("工具列表", "SMY 工具站收纳脚本工具、安装命令和源文件下载。")}
 <body>
   <div class="min-h-screen bg-paper">
-    ${renderHeader(null, tools)}
+    ${renderHeader(true)}
     <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section class="grid gap-6 border-b border-line pb-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+      <section class="border-b border-line pb-8">
         <div class="min-w-0">
           <h1 class="mt-2 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">SMY 工具站</h1>
           <p class="mt-4 max-w-3xl text-base leading-7 text-zinc-600">集中展示每个工具的用途、适用平台、权限风险、源文件和一键命令。</p>
-        </div>
-        <div class="grid gap-3">
-          <label class="grid gap-1.5 text-sm font-medium text-zinc-700">
-            <span>搜索工具</span>
-            <input class="h-11 rounded-md border border-line bg-white px-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" type="search" placeholder="按名称、平台、用途或标签搜索" data-tool-search>
-          </label>
-          <div class="flex flex-wrap gap-2" aria-label="按平台筛选">
-            <button class="filter-button" type="button" data-platform-filter="all" aria-pressed="true">全部</button>
-            ${platforms.map((platform) => `<button class="filter-button" type="button" data-platform-filter="${escapeAttr(platform)}" aria-pressed="false">${escapeHtml(platform)}</button>`).join("")}
-          </div>
         </div>
       </section>
 
@@ -140,12 +128,9 @@ function renderToolCard(tool: ToolPage): string {
   const searchText = [tool.title, tool.category, tool.summary, ...tool.platforms, ...tool.tags].join(" ");
 
   return `<article class="min-w-0 rounded-lg border border-line bg-white p-5 shadow-sm" data-tool-card data-platforms="${escapeAttr(tool.platforms.join(","))}" data-search="${escapeAttr(searchText)}">
-  <div class="flex items-start justify-between gap-3">
-    <div class="min-w-0">
-      <p class="${accentText(tool.accent)} text-sm font-semibold">${escapeHtml(tool.category)}</p>
-      <h3 class="mt-1 text-xl font-semibold tracking-normal text-zinc-950">${escapeHtml(tool.title)}</h3>
-    </div>
-    <span class="rounded-md border border-line bg-stone-50 px-2 py-1 text-xs font-medium text-zinc-600">${tool.commands.length} 条命令</span>
+  <div class="min-w-0">
+    <p class="${accentText(tool.accent)} text-sm font-semibold">${escapeHtml(tool.category)}</p>
+    <h3 class="mt-1 text-xl font-semibold tracking-normal text-zinc-950">${escapeHtml(tool.title)}</h3>
   </div>
   <p class="mt-3 text-sm leading-6 text-zinc-600">${escapeHtml(tool.summary)}</p>
   <div class="mt-4 flex flex-wrap gap-2">
@@ -156,13 +141,13 @@ function renderToolCard(tool: ToolPage): string {
 </article>`;
 }
 
-function renderToolPage(activeTool: ToolPage, tools: ToolPage[], origin: string): string {
+function renderToolPage(activeTool: ToolPage, origin: string): string {
   return `<!doctype html>
 <html lang="zh-CN">
 ${renderHead(activeTool.title, activeTool.summary)}
 <body>
   <div class="min-h-screen bg-paper">
-    ${renderHeader(activeTool, tools)}
+    ${renderHeader()}
     <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <section class="border-b border-line pb-7">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -181,12 +166,11 @@ ${renderHead(activeTool.title, activeTool.summary)}
       <div class="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <div class="min-w-0">
           <section>
-            <div class="mb-4 flex items-end justify-between gap-3">
+            <div class="mb-4">
               <div>
                 <p class="text-sm font-semibold text-zinc-500">Shortcuts</p>
                 <h2 class="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">一键命令</h2>
               </div>
-              <span class="text-sm text-zinc-500">${activeTool.commands.length} 条</span>
             </div>
             <div class="grid gap-4">
               ${activeTool.commands.map((command) => renderCommand(command, activeTool, origin)).join("")}
@@ -230,7 +214,7 @@ function renderSourcePanel(tool: ToolPage, origin: string): string {
 </section>`;
 }
 
-function renderHeader(activeTool: ToolPage | null, tools: ToolPage[]): string {
+function renderHeader(showSearch = false): string {
   return `<header class="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
   <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
     <a href="/tools" class="flex items-center gap-3 text-zinc-950">
@@ -239,19 +223,16 @@ function renderHeader(activeTool: ToolPage | null, tools: ToolPage[]): string {
         <span class="block text-sm font-semibold leading-5">SMY 工具站</span>
       </span>
     </a>
-    <nav aria-label="工具导航" class="flex gap-1 overflow-x-auto">
-      ${renderNavLink("/tools", "全部工具", activeTool === null)}
-      ${tools.map((tool) => renderNavLink(tool.route, tool.title, tool.slug === activeTool?.slug)).join("")}
-    </nav>
+    ${showSearch ? renderHeaderSearch() : ""}
   </div>
 </header>`;
 }
 
-function renderNavLink(route: string, label: string, active: boolean): string {
-  const activeClass = active
-    ? "border-zinc-950 bg-zinc-950 text-white"
-    : "border-transparent text-zinc-600 hover:border-line hover:bg-white hover:text-zinc-950";
-  return `<a class="${activeClass} whitespace-nowrap rounded-md border px-3 py-2 text-sm font-medium transition" href="${escapeAttr(route)}">${escapeHtml(label)}</a>`;
+function renderHeaderSearch(): string {
+  return `<label class="w-full lg:w-80">
+    <span class="sr-only">搜索工具</span>
+    <input class="h-10 w-full rounded-md border border-line bg-white px-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" type="search" placeholder="按名称、平台、用途或标签搜索" data-tool-search>
+  </label>`;
 }
 
 function renderCommand(command: CommandSpec, tool: ToolPage, origin: string): string {
@@ -298,13 +279,13 @@ function renderInput(commandId: string, input: CommandInput): string {
 </label>`;
 }
 
-function renderNotFound(tools: ToolPage[]): string {
+function renderNotFound(): string {
   return `<!doctype html>
 <html lang="zh-CN">
 ${renderHead("页面不存在", "请求的工具页面不存在。")}
 <body>
   <div class="min-h-screen bg-paper">
-    ${renderHeader(null, tools)}
+    ${renderHeader()}
     <main class="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <p class="text-sm font-semibold uppercase tracking-normal text-zinc-500">404</p>
       <h1 class="mt-2 text-3xl font-semibold tracking-normal text-zinc-950">页面不存在</h1>
@@ -351,10 +332,6 @@ function accentText(accent: ToolPage["accent"]): string {
     default:
       return "text-accent";
   }
-}
-
-function unique(values: string[]): string[] {
-  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
 }
 
 function html(body: string, status = 200): Response {

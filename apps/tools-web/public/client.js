@@ -68,10 +68,8 @@
   });
 
   const search = document.querySelector("[data-tool-search]");
-  const filters = Array.from(document.querySelectorAll("[data-platform-filter]"));
   const cards = Array.from(document.querySelectorAll("[data-tool-card]"));
   const count = document.querySelector("[data-tool-count]");
-  let activePlatform = "all";
 
   const updateToolList = () => {
     const query = (search?.value || "").trim().toLowerCase();
@@ -79,12 +77,9 @@
 
     cards.forEach((card) => {
       const haystack = (card.dataset.search || "").toLowerCase();
-      const platforms = (card.dataset.platforms || "").split(",");
       const matchesQuery = !query || haystack.includes(query);
-      const matchesPlatform = activePlatform === "all" || platforms.includes(activePlatform);
-      const visible = matchesQuery && matchesPlatform;
-      card.hidden = !visible;
-      if (visible) visibleCount += 1;
+      card.hidden = !matchesQuery;
+      if (matchesQuery) visibleCount += 1;
     });
 
     if (count) {
@@ -93,15 +88,6 @@
   };
 
   search?.addEventListener("input", updateToolList);
-  filters.forEach((filter) => {
-    filter.addEventListener("click", () => {
-      activePlatform = filter.dataset.platformFilter || "all";
-      filters.forEach((button) => {
-        button.setAttribute("aria-pressed", String(button === filter));
-      });
-      updateToolList();
-    });
-  });
 
   updateToolList();
 })();
