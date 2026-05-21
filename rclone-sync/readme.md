@@ -72,6 +72,12 @@ bash ./rclone-sync.sh dry-run
 bash ./rclone-sync.sh push-test
 ```
 
+自动下载最新版 rclone 到脚本所在目录，并在缺少时创建空的 `rclone.conf`：
+
+```bash
+bash ./rclone-sync.sh install-rclone
+```
+
 查看帮助：
 
 ```bash
@@ -84,6 +90,7 @@ PowerShell 对应指令：
 powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 sync
 powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 dry-run
 powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 push-test
+powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 install-rclone
 powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 help
 ```
 
@@ -127,6 +134,8 @@ Windows 任务计划程序的操作可以填写：
 ## 注意事项
 
 - Bash 版需要 Linux Bash；PowerShell 版需要 Windows PowerShell 5.1+ 或 PowerShell 7。两者都需要可执行的 `rclone` 和可读取的 rclone 配置文件。
+- `install-rclone` 会从 rclone 官方 current 下载地址获取最新版。Linux 支持 x86、x86_64、ARM64、ARMv7；Windows 支持 amd64、arm64、386。
+- `install-rclone` 会在 `rclone.conf` 不存在时创建空文件，但不会配置 remote、token 或密码。首次同步前仍需用 `rclone config` 或手工编辑写入真实 remote。
 - `rclone sync` 会让目标端尽量镜像源端；源端删除的文件可能会在目标端删除。首次使用建议先执行 `dry-run` 指令测试。
 - 脚本默认包含 `--delete-excluded`，被排除规则匹配到的目标端文件也会被删除，请确认符合预期。
 - 脚本默认包含 `--no-check-certificate`，会跳过 TLS 证书校验。只有在自签名证书或内网环境确有需要时再保留。

@@ -100,6 +100,18 @@
       "template": "bash ./rclone-sync.sh push-test"
     },
     {
+      "id": "rclone-sync-install-rclone",
+      "title": "安装最新版 rclone",
+      "description": "自动下载官方最新版 rclone 到脚本所在目录，并在缺少时创建空 rclone.conf。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "rclone",
+        "下载"
+      ],
+      "template": "bash ./rclone-sync.sh install-rclone"
+    },
+    {
       "id": "rclone-sync-help",
       "title": "查看帮助",
       "description": "查看 rclone-sync 支持的脚本指令和配置变量摘要。",
@@ -145,6 +157,18 @@
         "测试"
       ],
       "template": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\rclone-sync.ps1 push-test"
+    },
+    {
+      "id": "rclone-sync-install-rclone-ps1",
+      "title": "PowerShell 安装最新版 rclone",
+      "description": "自动下载官方最新版 rclone.exe 到脚本所在目录，并在缺少时创建空 rclone.conf。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "rclone",
+        "下载"
+      ],
+      "template": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\rclone-sync.ps1 install-rclone"
     },
     {
       "id": "rclone-sync-help-ps1",

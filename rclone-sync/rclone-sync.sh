@@ -312,24 +312,167 @@ run_push_test() {
     exit 1
 }
 
+detect_rclone_platform() {
+    local os_name
+    local arch_name
+
+    os_name="$(uname -s 2>/dev/null || true)"
+    arch_name="$(uname -m 2>/dev/null || true)"
+    arch_name="$(printf "%s" "${arch_name}" | tr '[:upper:]' '[:lower:]')"
+
+    if [[ "${os_name}" != "Linux" ]]; then
+        printf "install-rclone only supports Linux in the Bash script. Detected OS: %s\n" "${os_name}" >&2
+        return 1
+    fi
+
+    case "${arch_name}" in
+        x86_64|amd64)
+            printf "linux-amd64"
+            ;;
+        i386|i686)
+            printf "linux-386"
+            ;;
+        aarch64|arm64)
+            printf "linux-arm64"
+            ;;
+        armv7l|armv7*|armhf)
+            printf "linux-arm-v7"
+            ;;
+        *)
+            printf "Unsupported Linux architecture for rclone download: %s\n" "${arch_name}" >&2
+            return 1
+            ;;
+    esac
+}
+
+download_file() {
+    local url="$1"
+    local output="$2"
+
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "${url}" -o "${output}"
+        return $?
+    fi
+
+    if command -v wget >/dev/null 2>&1; then
+        wget -q -O "${output}" "${url}"
+        return $?
+    fi
+
+    printf "curl 或 wget 不可用，无法下载 rclone。\n" >&2
+    return 1
+}
+
+ensure_config_file() {
+    if [[ -e "${CONFIG_FILE}" ]]; then
+        log_message "INFO" "rclone 配置文件已存在，保留不覆盖: ${CONFIG_FILE}"
+        return 0
+    fi
+
+    if ! : > "${CONFIG_FILE}"; then
+        log_message "ERROR" "无法创建空 rclone 配置文件: ${CONFIG_FILE}"
+        printf "无法创建空 rclone 配置文件: %s\n" "${CONFIG_FILE}" >&2
+        return 1
+    fi
+
+    log_message "INFO" "已创建空 rclone 配置文件: ${CONFIG_FILE}"
+}
+
+install_rclone() {
+    local platform
+    local url
+    local temp_dir
+    local zip_path
+    local extract_dir
+    local extracted_rclone
+    local exit_code=0
+
+    if ! platform="$(detect_rclone_platform)"; then
+        exit 1
+    fi
+
+    if ! command -v unzip >/dev/null 2>&1; then
+        log_message "ERROR" "unzip 不可用，无法解压 rclone。"
+        printf "unzip 不可用，无法解压 rclone。\n" >&2
+        exit 1
+    fi
+
+    temp_dir="$(mktemp -d 2>/dev/null || mktemp -d -t rclone-sync)"
+    zip_path="${temp_dir}/rclone.zip"
+    extract_dir="${temp_dir}/extract"
+    url="https://downloads.rclone.org/rclone-current-${platform}.zip"
+
+    mkdir -p "${extract_dir}"
+    log_message "INFO" "正在下载 rclone: ${url}"
+    printf "Downloading rclone from %s\n" "${url}"
+
+    if ! download_file "${url}" "${zip_path}"; then
+        log_message "ERROR" "rclone 下载失败: ${url}"
+        rm -rf "${temp_dir}"
+        exit 1
+    fi
+
+    if ! unzip -q "${zip_path}" -d "${extract_dir}"; then
+        log_message "ERROR" "rclone 解压失败: ${zip_path}"
+        rm -rf "${temp_dir}"
+        exit 1
+    fi
+
+    extracted_rclone="$(find "${extract_dir}" -type f -name rclone | head -n 1)"
+    if [[ -z "${extracted_rclone}" ]]; then
+        log_message "ERROR" "解压目录中未找到 rclone 可执行文件。"
+        rm -rf "${temp_dir}"
+        exit 1
+    fi
+
+    if ! cp "${extracted_rclone}" "${RCLONE_PATH}"; then
+        log_message "ERROR" "复制 rclone 到脚本目录失败: ${RCLONE_PATH}"
+        rm -rf "${temp_dir}"
+        exit 1
+    fi
+
+    chmod +x "${RCLONE_PATH}"
+    if ! ensure_config_file; then
+        rm -rf "${temp_dir}"
+        exit 1
+    fi
+
+    log_message "INFO" "rclone 已安装到: ${RCLONE_PATH}"
+    "${RCLONE_PATH}" version
+    exit_code=$?
+    rm -rf "${temp_dir}"
+
+    if [[ ${exit_code} -ne 0 ]]; then
+        log_message "ERROR" "rclone version 验证失败，退出码: ${exit_code}"
+        exit "${exit_code}"
+    fi
+
+    log_message "INFO" "install-rclone 完成。"
+    printf "rclone installed: %s\n" "${RCLONE_PATH}"
+    printf "rclone config file: %s\n" "${CONFIG_FILE}"
+    exit 0
+}
+
 show_help() {
     cat <<EOF
 rclone-sync
 
 Usage:
-  bash rclone-sync.sh [sync|dry-run|push-test|help]
+  bash rclone-sync.sh [sync|dry-run|push-test|install-rclone|help]
 
 Commands:
-  sync       Run rclone sync. This is the default when no command is provided.
-  dry-run    Run rclone sync with --dry-run. No NotifyMux failure notification is sent.
-  push-test  Send one NotifyMux test notification. rclone and config are not checked.
-  help       Show this help message.
+  sync            Run rclone sync. This is the default when no command is provided.
+  dry-run         Run rclone sync with --dry-run. No NotifyMux failure notification is sent.
+  push-test       Send one NotifyMux test notification. rclone and config are not checked.
+  install-rclone  Download the latest rclone into the script directory.
+  help            Show this help message.
 
 Examples:
   bash rclone-sync.sh
   bash rclone-sync.sh sync
   bash rclone-sync.sh dry-run
   bash rclone-sync.sh push-test
+  bash rclone-sync.sh install-rclone
 
 Configuration:
   JOB_NAME, RCLONE_PATH, CONFIG_FILE, SOURCE_DIR, DEST_DIR, EXCLUDE_LIST, LOG_DIR,
@@ -341,7 +484,7 @@ main() {
     local command="${1:-sync}"
 
     case "${command}" in
-        sync|dry-run|push-test)
+        sync|dry-run|push-test|install-rclone)
             ;;
         help|-h|--help)
             show_help
@@ -371,6 +514,9 @@ main() {
             ;;
         push-test)
             run_push_test
+            ;;
+        install-rclone)
+            install_rclone
             ;;
     esac
 }

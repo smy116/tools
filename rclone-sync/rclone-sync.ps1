@@ -362,24 +362,117 @@ function Invoke-PushTest {
     exit 1
 }
 
+function Get-RcloneDownloadPlatform {
+    $architecture = if ($env:PROCESSOR_ARCHITEW6432) {
+        $env:PROCESSOR_ARCHITEW6432
+    } else {
+        $env:PROCESSOR_ARCHITECTURE
+    }
+
+    if ([string]::IsNullOrWhiteSpace($architecture)) {
+        throw "Unable to detect Windows architecture from environment variables."
+    }
+
+    switch ($architecture.ToUpperInvariant()) {
+        "AMD64" { return "windows-amd64" }
+        "X64" { return "windows-amd64" }
+        "ARM64" { return "windows-arm64" }
+        "X86" { return "windows-386" }
+        default {
+            throw "Unsupported Windows architecture for rclone download: $architecture"
+        }
+    }
+}
+
+function Ensure-ConfigFile {
+    if (Test-Path -LiteralPath $ConfigFile -PathType Leaf) {
+        Write-LogMessage -Level "INFO" -Message "rclone config already exists; keeping it unchanged: $ConfigFile"
+        return
+    }
+
+    New-Item -ItemType File -Path $ConfigFile -Force | Out-Null
+    Write-LogMessage -Level "INFO" -Message "Created empty rclone config file: $ConfigFile"
+}
+
+function Install-Rclone {
+    $platform = Get-RcloneDownloadPlatform
+    $url = "https://downloads.rclone.org/rclone-current-$platform.zip"
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("rclone-sync-" + [guid]::NewGuid().ToString("N"))
+    $zipPath = Join-Path $tempDir "rclone.zip"
+    $extractDir = Join-Path $tempDir "extract"
+    $targetPath = if ($RclonePath.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) {
+        $RclonePath
+    } else {
+        "$RclonePath.exe"
+    }
+
+    try {
+        New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
+        Write-LogMessage -Level "INFO" -Message "Downloading rclone: $url"
+        Write-Output "Downloading rclone from $url"
+
+        $downloadParams = @{
+            Uri = $url
+            OutFile = $zipPath
+            ErrorAction = "Stop"
+        }
+        if ($PSVersionTable.PSVersion.Major -le 5) {
+            $downloadParams.UseBasicParsing = $true
+        }
+
+        Invoke-WebRequest @downloadParams
+        Expand-Archive -LiteralPath $zipPath -DestinationPath $extractDir -Force
+
+        $rcloneExe = Get-ChildItem -LiteralPath $extractDir -Recurse -Filter "rclone.exe" -File | Select-Object -First 1
+        if ($null -eq $rcloneExe) {
+            throw "Unable to find rclone.exe after extraction."
+        }
+
+        Copy-Item -LiteralPath $rcloneExe.FullName -Destination $targetPath -Force
+        Ensure-ConfigFile
+
+        Write-LogMessage -Level "INFO" -Message "rclone was installed to: $targetPath"
+        & $targetPath version
+        if ($LASTEXITCODE -ne 0) {
+            throw "rclone version verification failed with exit code $LASTEXITCODE."
+        }
+
+        Write-LogMessage -Level "INFO" -Message "install-rclone completed."
+        Write-Output "rclone installed: $targetPath"
+        Write-Output "rclone config file: $ConfigFile"
+        exit 0
+    } catch {
+        Write-LogMessage -Level "ERROR" -Message "install-rclone failed: $($_.Exception.Message)"
+        [Console]::Error.WriteLine("install-rclone failed: $($_.Exception.Message)")
+        exit 1
+    } finally {
+        if (Test-Path -LiteralPath $tempDir) {
+            Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Show-Help {
     @"
 rclone-sync
 
 Usage:
-  powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 [sync|dry-run|push-test|help]
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 [sync|dry-run|push-test|install-rclone|help]
 
 Commands:
-  sync       Run rclone sync. This is the default when no command is provided.
-  dry-run    Run rclone sync with --dry-run. No NotifyMux failure notification is sent.
-  push-test  Send one NotifyMux test notification. rclone and config are not checked.
-  help       Show this help message.
+  sync            Run rclone sync. This is the default when no command is provided.
+  dry-run         Run rclone sync with --dry-run. No NotifyMux failure notification is sent.
+  push-test       Send one NotifyMux test notification. rclone and config are not checked.
+  install-rclone  Download the latest rclone into the script directory.
+  help            Show this help message.
 
 Examples:
   powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1
   powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 sync
   powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 dry-run
   powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 push-test
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 install-rclone
 
 Configuration:
   JobName, RclonePath, ConfigFile, SourceDir, DestDir, ExcludeList, LogDir,
@@ -399,6 +492,7 @@ function Main {
         "sync" { }
         "dry-run" { }
         "push-test" { }
+        "install-rclone" { }
         "help" {
             Show-Help
             exit 0
@@ -435,6 +529,9 @@ function Main {
         }
         "push-test" {
             Invoke-PushTest
+        }
+        "install-rclone" {
+            Install-Rclone
         }
     }
 }
