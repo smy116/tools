@@ -115,12 +115,12 @@ Windows 任务计划程序的操作可以填写：
 ## 参数说明
 
 - `JOB_NAME` / `JobName`：任务名称，用于日志文件名和 NotifyMux 通知标题；通知标题格式为 `Rclone Sync: <任务名称>`。
-- `RCLONE_PATH` / `RclonePath`：rclone 可执行文件路径。可以填写绝对路径，也可以在确认 `PATH` 可用后改成 `rclone`。
-- `CONFIG_FILE` / `ConfigFile`：rclone 配置文件路径。
+- `RCLONE_PATH` / `RclonePath`：rclone 可执行文件路径，默认是脚本所在目录下的 `rclone`；PowerShell 版也会兼容同目录下的 `rclone.exe`。
+- `CONFIG_FILE` / `ConfigFile`：rclone 配置文件路径，默认是脚本所在目录下的 `rclone.conf`。
 - `SOURCE_DIR` / `SourceDir`：同步源，可以是本地路径，也可以是 rclone remote，例如 `minio:bucket/path/`。
 - `DEST_DIR` / `DestDir`：同步目标，可以是本地路径，也可以是 rclone remote，例如 `backup:path/`。
 - `EXCLUDE_LIST` / `ExcludeList`：逗号分隔的排除规则，例如 `Public/**,*.tmp,cache/`。为空时不排除文件。
-- `LOG_DIR` / `LogDir`：日志目录。脚本会按 `JOB_NAME_YYYYMM.log` 写入月度日志。
+- `LOG_DIR` / `LogDir`：日志目录，默认是脚本所在目录下的 `logs/`。脚本会按 `JOB_NAME_YYYYMM.log` 写入月度日志。
 - `NOTIFYMUX_API_KEY` / `NotifyMuxApiKey`：NotifyMux API Key。只需要填写这个密钥即可发送失败通知。
 - `NOTIFYMUX_ENDPOINT` / `NotifyMuxEndpoint`：NotifyMux API 端点，默认是 `https://push.smy.me/send`，通常不需要修改。
 

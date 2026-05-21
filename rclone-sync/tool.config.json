@@ -1,7 +1,7 @@
 {
   "slug": "rclone-sync",
   "title": "rclone-sync",
-  "category": "备份同步",
+  "category": "Rclone 备份",
   "summary": "使用 rclone 在 Linux 或 Windows 服务器上执行本地目录或远程存储之间的同步，并记录日志、按需发送 NotifyMux 失败通知。",
   "platforms": [
     "Linux",

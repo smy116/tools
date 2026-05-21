@@ -9,14 +9,16 @@ set -o pipefail
 #===============================================================================
 
 # --- 配置变量 ---
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+
 # 任务名称，用于日志和通知
 JOB_NAME="Sync-Minio-To-E5"
 
 # rclone 可执行文件路径
-# 建议将 rclone 添加到系统 PATH 中，然后可以直接使用 "rclone"
-RCLONE_PATH="/mnt/ssdpool/appdata/rclone/rclone"
+# 默认使用脚本所在目录下的 rclone
+RCLONE_PATH="${SCRIPT_DIR}/rclone"
 # rclone 配置文件路径
-CONFIG_FILE="/mnt/ssdpool/appdata/rclone/rclone.conf"
+CONFIG_FILE="${SCRIPT_DIR}/rclone.conf"
 
 # 源目录 (rclone 远程或本地路径)
 # 示例: "minio_remote:bucket_name/path/" 或 "/local/data/"
@@ -31,7 +33,7 @@ EXCLUDE_LIST=""
 # EXCLUDE_LIST="Public/**,*.log,temp_files/"
 
 # 日志文件目录
-LOG_DIR="/mnt/ssdpool/appdata/rclone/log"
+LOG_DIR="${SCRIPT_DIR}/logs"
 NOTIFYMUX_API_KEY="<YOUR NOTIFYMUX API KEY HERE>"
 NOTIFYMUX_ENDPOINT="https://push.smy.me/send"
 

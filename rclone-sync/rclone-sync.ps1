@@ -9,21 +9,25 @@ $ErrorActionPreference = "Stop"
 #===============================================================================
 
 # --- Configuration ---
+$ScriptDir = if ($PSScriptRoot) {
+    $PSScriptRoot
+} else {
+    Split-Path -Parent $MyInvocation.MyCommand.Path
+}
+
+if ([string]::IsNullOrWhiteSpace($ScriptDir)) {
+    $ScriptDir = (Get-Location).Path
+}
+
 # Job name used for logs and notifications.
 $JobName = "Sync-Minio-To-E5"
 
 # rclone executable path.
-# If rclone is in PATH, keep this as "rclone"; otherwise use an absolute path.
-$RclonePath = "rclone"
+# Defaults to the rclone executable in the script directory.
+$RclonePath = Join-Path $ScriptDir "rclone"
 
 # rclone config file path.
-# The usual Windows default is "$env:APPDATA\rclone\rclone.conf".
-$DefaultRcloneConfigDir = if ($env:APPDATA) {
-    Join-Path $env:APPDATA "rclone"
-} else {
-    Join-Path $HOME ".config/rclone"
-}
-$ConfigFile = Join-Path $DefaultRcloneConfigDir "rclone.conf"
+$ConfigFile = Join-Path $ScriptDir "rclone.conf"
 
 # Source directory, either an rclone remote or a local path.
 # Examples: "minio_remote:bucket_name/path/" or "D:\data\"
@@ -39,7 +43,7 @@ $ExcludeList = ""
 # $ExcludeList = "Public/**,*.log,temp_files/"
 
 # Log directory.
-$LogDir = Join-Path $DefaultRcloneConfigDir "log"
+$LogDir = Join-Path $ScriptDir "logs"
 $NotifyMuxApiKey = "<YOUR NOTIFYMUX API KEY HERE>"
 $NotifyMuxEndpoint = "https://push.smy.me/send"
 
@@ -102,6 +106,12 @@ function Resolve-RclonePath {
         if (Test-Path -LiteralPath $RclonePath -PathType Leaf) {
             return $RclonePath
         }
+
+        $windowsExecutablePath = "$RclonePath.exe"
+        if (Test-Path -LiteralPath $windowsExecutablePath -PathType Leaf) {
+            return $windowsExecutablePath
+        }
+
         return $null
     }
 
