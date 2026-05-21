@@ -1,0 +1,91 @@
+{
+  "slug": "rclone-sync",
+  "title": "rclone-sync",
+  "category": "备份同步",
+  "summary": "使用 rclone 在 Linux 或 Windows 服务器上执行本地目录或远程存储之间的同步，并记录日志、按需发送 NotifyMux 失败通知。",
+  "platforms": [
+    "Linux",
+    "Windows"
+  ],
+  "tags": [
+    "rclone",
+    "备份",
+    "Cron",
+    "PowerShell",
+    "NotifyMux"
+  ],
+  "order": 30,
+  "accent": "amber",
+  "sourceFiles": [
+    {
+      "id": "script",
+      "path": "rclone-sync.sh",
+      "route": "/source/rclone-sync/rclone-sync.sh",
+      "filename": "rclone-sync.sh",
+      "contentType": "text/x-shellscript; charset=utf-8",
+      "label": "rclone-sync 同步脚本",
+      "delivery": "asset",
+      "envKey": "RCLONE_SYNC_SH_URL"
+    },
+    {
+      "id": "powershell",
+      "path": "rclone-sync.ps1",
+      "route": "/source/rclone-sync/rclone-sync.ps1",
+      "filename": "rclone-sync.ps1",
+      "contentType": "text/plain; charset=utf-8",
+      "label": "rclone-sync PowerShell 脚本",
+      "delivery": "asset",
+      "envKey": "RCLONE_SYNC_PS1_URL"
+    }
+  ],
+  "commands": [
+    {
+      "id": "rclone-sync-download",
+      "title": "下载脚本",
+      "description": "下载 rclone-sync 脚本到当前目录，并赋予执行权限；执行前请先编辑脚本顶部配置。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "rclone",
+        "需配置"
+      ],
+      "template": "curl -fsSL {{source:script}} -o rclone-sync.sh && chmod +x rclone-sync.sh"
+    },
+    {
+      "id": "rclone-sync-download-ps1",
+      "title": "下载 PowerShell 脚本",
+      "description": "下载 rclone-sync PowerShell 脚本到当前目录；执行前请先编辑脚本顶部配置。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "rclone",
+        "需配置"
+      ],
+      "template": "Invoke-WebRequest -Uri \"{{source:powershell}}\" -OutFile \".\\rclone-sync.ps1\""
+    },
+    {
+      "id": "rclone-sync-run-local",
+      "title": "执行本地脚本",
+      "description": "在已经确认 NotifyMux API Key、rclone 路径、配置文件、源端和目标端后执行同步。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "同步",
+        "需确认"
+      ],
+      "template": "bash ./rclone-sync.sh"
+    },
+    {
+      "id": "rclone-sync-run-local-ps1",
+      "title": "执行本地 PowerShell 脚本",
+      "description": "在已经确认 NotifyMux API Key、rclone 路径、配置文件、源端和目标端后执行同步。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "同步",
+        "需确认"
+      ],
+      "template": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\rclone-sync.ps1"
+    }
+  ]
+}
