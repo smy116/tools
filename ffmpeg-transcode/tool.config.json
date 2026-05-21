@@ -1,0 +1,133 @@
+{
+  "slug": "ffmpeg-transcode",
+  "title": "ffmpeg-transcode",
+  "category": "视频转码",
+  "summary": "使用 ffmpeg 批量转码目录或单个视频，默认针对 RockChip MPP 硬件编解码优化，并支持 dry-run 预演。",
+  "platforms": [
+    "Linux"
+  ],
+  "tags": [
+    "FFmpeg",
+    "RockChip MPP",
+    "视频转码",
+    "dry-run"
+  ],
+  "order": 40,
+  "accent": "sky",
+  "sourceFiles": [
+    {
+      "id": "script",
+      "path": "transcode.sh",
+      "route": "/source/ffmpeg-transcode/transcode.sh",
+      "filename": "transcode.sh",
+      "contentType": "text/x-shellscript; charset=utf-8",
+      "label": "ffmpeg-transcode 转码脚本",
+      "delivery": "asset",
+      "envKey": "FFMPEG_TRANSCODE_SH_URL"
+    }
+  ],
+  "commands": [
+    {
+      "id": "ffmpeg-transcode-download",
+      "title": "下载脚本",
+      "description": "下载 ffmpeg-transcode 脚本到当前目录，并赋予执行权限。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "FFmpeg",
+        "需确认"
+      ],
+      "template": "curl -fsSL {{source:script}} -o transcode.sh && chmod +x transcode.sh"
+    },
+    {
+      "id": "ffmpeg-transcode-interactive",
+      "title": "交互式转码",
+      "description": "下载脚本后在本地打开交互模式，逐步选择源目录、目标目录、编码器、分辨率和码率。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "交互式",
+        "FFmpeg"
+      ],
+      "template": "bash ./transcode.sh"
+    },
+    {
+      "id": "ffmpeg-transcode-run",
+      "title": "静默转码",
+      "description": "下载脚本后，使用默认配置转码源目录或单个视频到目标目录；默认采用 RockChip MPP 硬件编解码、HEVC、720p、2000kbps。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "RockChip MPP",
+        "需确认"
+      ],
+      "inputs": [
+        {
+          "id": "sourcePath",
+          "label": "源目录或源文件",
+          "placeholder": "/path/to/source_videos",
+          "type": "text",
+          "quote": "posix"
+        },
+        {
+          "id": "destPath",
+          "label": "目标目录",
+          "placeholder": "/path/to/output_videos",
+          "type": "text",
+          "quote": "posix"
+        }
+      ],
+      "template": "bash ./transcode.sh {{sourcePath}} {{destPath}}"
+    },
+    {
+      "id": "ffmpeg-transcode-dry-run",
+      "title": "dry-run 预演",
+      "description": "下载脚本后，只输出将执行的 ffmpeg 命令，不实际转码或复制文件，适合先检查路径和硬件加速参数。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "dry-run",
+        "调试"
+      ],
+      "inputs": [
+        {
+          "id": "sourcePath",
+          "label": "源目录或源文件",
+          "placeholder": "/path/to/source_videos",
+          "type": "text",
+          "quote": "posix"
+        },
+        {
+          "id": "destPath",
+          "label": "目标目录",
+          "placeholder": "/path/to/output_videos",
+          "type": "text",
+          "quote": "posix"
+        }
+      ],
+      "template": "bash ./transcode.sh --dry-run {{sourcePath}} {{destPath}}"
+    },
+    {
+      "id": "ffmpeg-transcode-install-alias",
+      "title": "安装 transcode 别名",
+      "description": "将当前目录下的 transcode.sh 注册为 transcode 命令别名，写入当前用户的 shell 配置文件。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "修改 shell 配置"
+      ],
+      "template": "bash ./transcode.sh --install"
+    },
+    {
+      "id": "ffmpeg-transcode-help",
+      "title": "查看帮助",
+      "description": "查看脚本支持的选项、参数和示例。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "help"
+      ],
+      "template": "bash ./transcode.sh --help"
+    }
+  ]
+}
