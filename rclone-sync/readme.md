@@ -46,6 +46,47 @@ Windows PowerShell 执行：
 powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1
 ```
 
+## 支持指令
+
+无参数运行等同于 `sync`：
+
+```bash
+bash ./rclone-sync.sh
+```
+
+显式执行真实同步：
+
+```bash
+bash ./rclone-sync.sh sync
+```
+
+仅预演同步，不修改目标端，也不会发送失败通知：
+
+```bash
+bash ./rclone-sync.sh dry-run
+```
+
+只发送一条 NotifyMux 测试通知，不检查 rclone 配置，也不执行同步：
+
+```bash
+bash ./rclone-sync.sh push-test
+```
+
+查看帮助：
+
+```bash
+bash ./rclone-sync.sh help
+```
+
+PowerShell 对应指令：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 sync
+powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 dry-run
+powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 push-test
+powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 help
+```
+
 如果已经克隆本仓库，也可以直接在本目录执行：
 
 ```bash
@@ -73,7 +114,7 @@ Windows 任务计划程序的操作可以填写：
 
 ## 参数说明
 
-- `JOB_NAME` / `JobName`：任务名称，用于日志文件名和 NotifyMux 通知标题。
+- `JOB_NAME` / `JobName`：任务名称，用于日志文件名和 NotifyMux 通知标题；通知标题格式为 `Rclone Sync: <任务名称>`。
 - `RCLONE_PATH` / `RclonePath`：rclone 可执行文件路径。可以填写绝对路径，也可以在确认 `PATH` 可用后改成 `rclone`。
 - `CONFIG_FILE` / `ConfigFile`：rclone 配置文件路径。
 - `SOURCE_DIR` / `SourceDir`：同步源，可以是本地路径，也可以是 rclone remote，例如 `minio:bucket/path/`。
@@ -86,7 +127,7 @@ Windows 任务计划程序的操作可以填写：
 ## 注意事项
 
 - Bash 版需要 Linux Bash；PowerShell 版需要 Windows PowerShell 5.1+ 或 PowerShell 7。两者都需要可执行的 `rclone` 和可读取的 rclone 配置文件。
-- `rclone sync` 会让目标端尽量镜像源端；源端删除的文件可能会在目标端删除。首次使用建议先在脚本中加入 `--dry-run` 测试。
+- `rclone sync` 会让目标端尽量镜像源端；源端删除的文件可能会在目标端删除。首次使用建议先执行 `dry-run` 指令测试。
 - 脚本默认包含 `--delete-excluded`，被排除规则匹配到的目标端文件也会被删除，请确认符合预期。
 - 脚本默认包含 `--no-check-certificate`，会跳过 TLS 证书校验。只有在自签名证书或内网环境确有需要时再保留。
 - NotifyMux API Key、remote 名称和配置文件路径可能暴露内部信息，请不要把包含真实 API Key 的修改提交到仓库。

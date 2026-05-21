@@ -110,6 +110,7 @@ trim_whitespace() {
 }
 
 build_rclone_opts() {
+    local dry_run="${1:-false}"
     local exclude_array=()
     local item
     local trimmed_item
@@ -135,17 +136,19 @@ build_rclone_opts() {
         # "--bwlimit" "2M"        # 限速2M
     )
 
-    if [[ -z "${EXCLUDE_LIST}" ]]; then
-        return 0
+    if [[ -n "${EXCLUDE_LIST}" ]]; then
+        IFS=',' read -r -a exclude_array <<< "${EXCLUDE_LIST}"
+        for item in "${exclude_array[@]}"; do
+            trimmed_item="$(trim_whitespace "${item}")"
+            if [[ -n "${trimmed_item}" ]]; then
+                RCLONE_OPTS+=("--exclude" "${trimmed_item}")
+            fi
+        done
     fi
 
-    IFS=',' read -r -a exclude_array <<< "${EXCLUDE_LIST}"
-    for item in "${exclude_array[@]}"; do
-        trimmed_item="$(trim_whitespace "${item}")"
-        if [[ -n "${trimmed_item}" ]]; then
-            RCLONE_OPTS+=("--exclude" "${trimmed_item}")
-        fi
-    done
+    if [[ "${dry_run}" == "true" ]]; then
+        RCLONE_OPTS+=("--dry-run")
+    fi
 }
 
 format_rclone_command() {
@@ -172,7 +175,7 @@ build_notifymux_payload() {
     local body
     local job
 
-    title="$(json_escape "${JOB_NAME}")"
+    title="$(json_escape "Rclone Sync: ${JOB_NAME}")"
     body="$(json_escape "${message}")"
     job="$(json_escape "${JOB_NAME}")"
 
@@ -230,45 +233,144 @@ send_notifymux() {
 }
 
 run_sync() {
-    build_rclone_opts
+    local dry_run="${1:-false}"
+
+    build_rclone_opts "${dry_run}"
     log_message "INFO" "执行 rclone 命令: $(format_rclone_command)"
 
     "${RCLONE_PATH}" "${RCLONE_OPTS[@]}"
 }
 
-main() {
+run_sync_command() {
+    local dry_run="${1:-false}"
     local exit_code=0
     local message
+    local mode_label="同步"
+
+    if [[ "${dry_run}" == "true" ]]; then
+        mode_label="dry-run"
+    fi
+
+    log_message "INFO" "==================== 任务 '${JOB_NAME}' ${mode_label} 开始于 $(timestamp) ===================="
+
+    if preflight_check; then
+        run_sync "${dry_run}"
+        exit_code=$?
+    else
+        exit_code=2
+        message="任务 '${JOB_NAME}' 预检失败，未执行${mode_label}。源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'."
+        log_message "ERROR" "${message}"
+        if [[ "${dry_run}" != "true" ]]; then
+            send_notifymux "${message}" || true
+        fi
+    fi
+
+    if [[ ${exit_code} -eq 0 ]]; then
+        message="任务 '${JOB_NAME}' ${mode_label}成功！源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'."
+        log_message "INFO" "${message}"
+    elif [[ ${exit_code} -ne 2 ]]; then
+        message="任务 '${JOB_NAME}' ${mode_label}失败！源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'. rclone 退出码: ${exit_code}."
+        log_message "ERROR" "${message}"
+        if [[ "${dry_run}" != "true" ]]; then
+            send_notifymux "${message}" || true
+        fi
+    fi
+
+    log_message "INFO" "==================== 任务 '${JOB_NAME}' ${mode_label} 结束于 $(timestamp) (退出码: ${exit_code}) ================"
+    printf "\n" >> "${LOG_FILE}"
+
+    exit "${exit_code}"
+}
+
+run_push_test() {
+    local message
+
+    if ! notifymux_configured; then
+        log_message "ERROR" "NotifyMux API Key 未配置，无法发送 push-test 通知。"
+        printf "NotifyMux API Key 未配置，请先填写 NOTIFYMUX_API_KEY。\n" >&2
+        exit 1
+    fi
+
+    if ! command -v curl >/dev/null 2>&1; then
+        log_message "ERROR" "curl 不可用，无法发送 push-test 通知。"
+        printf "curl 不可用，无法发送 push-test 通知。\n" >&2
+        exit 1
+    fi
+
+    message="rclone-sync push-test 测试消息。任务 '${JOB_NAME}' 已成功连接 NotifyMux。"
+    log_message "INFO" "正在执行 push-test。"
+    if send_notifymux "${message}"; then
+        log_message "INFO" "push-test 成功。"
+        printf "push-test succeeded.\n"
+        exit 0
+    fi
+
+    log_message "ERROR" "push-test 失败。"
+    printf "push-test failed. See log: %s\n" "${LOG_FILE}" >&2
+    exit 1
+}
+
+show_help() {
+    cat <<EOF
+rclone-sync
+
+Usage:
+  bash rclone-sync.sh [sync|dry-run|push-test|help]
+
+Commands:
+  sync       Run rclone sync. This is the default when no command is provided.
+  dry-run    Run rclone sync with --dry-run. No NotifyMux failure notification is sent.
+  push-test  Send one NotifyMux test notification. rclone and config are not checked.
+  help       Show this help message.
+
+Examples:
+  bash rclone-sync.sh
+  bash rclone-sync.sh sync
+  bash rclone-sync.sh dry-run
+  bash rclone-sync.sh push-test
+
+Configuration:
+  JOB_NAME, RCLONE_PATH, CONFIG_FILE, SOURCE_DIR, DEST_DIR, EXCLUDE_LIST, LOG_DIR,
+  NOTIFYMUX_API_KEY, NOTIFYMUX_ENDPOINT
+EOF
+}
+
+main() {
+    local command="${1:-sync}"
+
+    case "${command}" in
+        sync|dry-run|push-test)
+            ;;
+        help|-h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            show_help >&2
+            exit 64
+            ;;
+    esac
+
+    if [[ $# -gt 1 ]]; then
+        show_help >&2
+        exit 64
+    fi
 
     if ! ensure_log_dir; then
         exit 1
     fi
 
-    log_message "INFO" "==================== 任务 '${JOB_NAME}' 开始于 $(timestamp) ===================="
-
-    if preflight_check; then
-        run_sync
-        exit_code=$?
-    else
-        exit_code=2
-        message="任务 '${JOB_NAME}' 预检失败，未执行同步。源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'."
-        log_message "ERROR" "${message}"
-        send_notifymux "${message}" || true
-    fi
-
-    if [[ ${exit_code} -eq 0 ]]; then
-        message="任务 '${JOB_NAME}' 同步成功！源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'."
-        log_message "INFO" "${message}"
-    elif [[ ${exit_code} -ne 2 ]]; then
-        message="任务 '${JOB_NAME}' 同步失败！源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'. rclone 退出码: ${exit_code}."
-        log_message "ERROR" "${message}"
-        send_notifymux "${message}" || true
-    fi
-
-    log_message "INFO" "==================== 任务 '${JOB_NAME}' 结束于 $(timestamp) (退出码: ${exit_code}) ================"
-    printf "\n" >> "${LOG_FILE}"
-
-    exit "${exit_code}"
+    case "${command}" in
+        sync)
+            run_sync_command "false"
+            ;;
+        dry-run)
+            run_sync_command "true"
+            ;;
+        push-test)
+            run_push_test
+            ;;
+    esac
 }
 
 # --- 脚本执行入口 ---

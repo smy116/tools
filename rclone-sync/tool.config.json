@@ -76,6 +76,41 @@
       "template": "bash ./rclone-sync.sh"
     },
     {
+      "id": "rclone-sync-dry-run",
+      "title": "dry-run 预演",
+      "description": "执行 rclone dry-run 预演，只检查将要同步的变更，不修改目标端，也不发送失败通知。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "dry-run",
+        "需确认"
+      ],
+      "template": "bash ./rclone-sync.sh dry-run"
+    },
+    {
+      "id": "rclone-sync-push-test",
+      "title": "NotifyMux 推送测试",
+      "description": "只发送一条 NotifyMux 测试通知，不检查 rclone 配置，也不执行同步。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "NotifyMux",
+        "测试"
+      ],
+      "template": "bash ./rclone-sync.sh push-test"
+    },
+    {
+      "id": "rclone-sync-help",
+      "title": "查看帮助",
+      "description": "查看 rclone-sync 支持的脚本指令和配置变量摘要。",
+      "platform": "Linux",
+      "language": "bash",
+      "badges": [
+        "help"
+      ],
+      "template": "bash ./rclone-sync.sh help"
+    },
+    {
       "id": "rclone-sync-run-local-ps1",
       "title": "执行本地 PowerShell 脚本",
       "description": "在已经确认 NotifyMux API Key、rclone 路径、配置文件、源端和目标端后执行同步。",
@@ -86,6 +121,41 @@
         "需确认"
       ],
       "template": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\rclone-sync.ps1"
+    },
+    {
+      "id": "rclone-sync-dry-run-ps1",
+      "title": "PowerShell dry-run 预演",
+      "description": "执行 rclone dry-run 预演，只检查将要同步的变更，不修改目标端，也不发送失败通知。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "dry-run",
+        "需确认"
+      ],
+      "template": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\rclone-sync.ps1 dry-run"
+    },
+    {
+      "id": "rclone-sync-push-test-ps1",
+      "title": "PowerShell NotifyMux 推送测试",
+      "description": "只发送一条 NotifyMux 测试通知，不检查 rclone 配置，也不执行同步。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "NotifyMux",
+        "测试"
+      ],
+      "template": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\rclone-sync.ps1 push-test"
+    },
+    {
+      "id": "rclone-sync-help-ps1",
+      "title": "PowerShell 查看帮助",
+      "description": "查看 rclone-sync 支持的脚本指令和配置变量摘要。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "help"
+      ],
+      "template": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\rclone-sync.ps1 help"
     }
   ]
 }

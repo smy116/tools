@@ -143,6 +143,10 @@ function Test-Preflight {
 }
 
 function Build-RcloneOptions {
+    param(
+        [bool]$DryRun = $false
+    )
+
     $script:RcloneOptions = @(
         "--config"
         $ConfigFile
@@ -181,15 +185,17 @@ function Build-RcloneOptions {
         # "2M"
     )
 
-    if ([string]::IsNullOrWhiteSpace($ExcludeList)) {
-        return
+    if (-not [string]::IsNullOrWhiteSpace($ExcludeList)) {
+        foreach ($item in ($ExcludeList -split ",")) {
+            $trimmedItem = $item.Trim()
+            if ($trimmedItem.Length -gt 0) {
+                $script:RcloneOptions += @("--exclude", $trimmedItem)
+            }
+        }
     }
 
-    foreach ($item in ($ExcludeList -split ",")) {
-        $trimmedItem = $item.Trim()
-        if ($trimmedItem.Length -gt 0) {
-            $script:RcloneOptions += @("--exclude", $trimmedItem)
-        }
+    if ($DryRun) {
+        $script:RcloneOptions += "--dry-run"
     }
 }
 
@@ -225,8 +231,9 @@ function Send-NotifyMux {
 
     Write-LogMessage -Level "INFO" -Message "Sending NotifyMux notification..."
 
+    $notifyTitle = "Rclone Sync: $JobName"
     $payload = @{
-        title = $JobName
+        title = $notifyTitle
         body = $Message
         channelIds = [object[]]@()
         metadata = @{
@@ -266,7 +273,11 @@ function Send-NotifyMux {
 }
 
 function Invoke-Sync {
-    Build-RcloneOptions
+    param(
+        [bool]$DryRun = $false
+    )
+
+    Build-RcloneOptions -DryRun $DryRun
     Write-LogMessage -Level "INFO" -Message "Running rclone command: $(Format-RcloneCommand)"
 
     try {
@@ -281,39 +292,142 @@ function Invoke-Sync {
     }
 }
 
-function Main {
+function Invoke-SyncCommand {
+    param(
+        [bool]$DryRun = $false
+    )
+
     $exitCode = 0
     $message = ""
+    $modeLabel = if ($DryRun) { "dry-run" } else { "sync" }
 
-    if (-not (Ensure-LogDir)) {
-        exit 1
-    }
-
-    Write-LogMessage -Level "INFO" -Message "==================== Job '$JobName' started at $(Get-Timestamp) ===================="
+    Write-LogMessage -Level "INFO" -Message "==================== Job '$JobName' $modeLabel started at $(Get-Timestamp) ===================="
 
     if (Test-Preflight) {
-        $exitCode = Invoke-Sync
+        $exitCode = Invoke-Sync -DryRun $DryRun
     } else {
         $exitCode = 2
-        $message = "Job '$JobName' preflight failed; sync was not executed. Source: '$SourceDir' -> Destination: '$DestDir'."
+        $message = "Job '$JobName' preflight failed; $modeLabel was not executed. Source: '$SourceDir' -> Destination: '$DestDir'."
         Write-LogMessage -Level "ERROR" -Message $message
-        Send-NotifyMux -Message $message | Out-Null
+        if (-not $DryRun) {
+            Send-NotifyMux -Message $message | Out-Null
+        }
     }
 
     if ($exitCode -eq 0) {
-        $message = "Job '$JobName' sync succeeded. Source: '$SourceDir' -> Destination: '$DestDir'."
+        $message = "Job '$JobName' $modeLabel succeeded. Source: '$SourceDir' -> Destination: '$DestDir'."
         Write-LogMessage -Level "INFO" -Message $message
     } elseif ($exitCode -ne 2) {
-        $message = "Job '$JobName' sync failed. Source: '$SourceDir' -> Destination: '$DestDir'. rclone exit code: $exitCode."
+        $message = "Job '$JobName' $modeLabel failed. Source: '$SourceDir' -> Destination: '$DestDir'. rclone exit code: $exitCode."
         Write-LogMessage -Level "ERROR" -Message $message
-        Send-NotifyMux -Message $message | Out-Null
+        if (-not $DryRun) {
+            Send-NotifyMux -Message $message | Out-Null
+        }
     }
 
-    Write-LogMessage -Level "INFO" -Message "==================== Job '$JobName' finished at $(Get-Timestamp) (exit code: $exitCode) ================"
+    Write-LogMessage -Level "INFO" -Message "==================== Job '$JobName' $modeLabel finished at $(Get-Timestamp) (exit code: $exitCode) ================"
     Add-Content -LiteralPath $LogFile -Encoding UTF8 -Value ""
 
     exit $exitCode
 }
 
+function Invoke-PushTest {
+    if (-not (Test-NotifyMuxConfigured)) {
+        Write-LogMessage -Level "ERROR" -Message "NotifyMux API Key is not configured; push-test cannot be sent."
+        [Console]::Error.WriteLine("NotifyMux API Key is not configured. Set NotifyMuxApiKey first.")
+        exit 1
+    }
+
+    $message = "rclone-sync push-test test message. Job '$JobName' can reach NotifyMux."
+    Write-LogMessage -Level "INFO" -Message "Running push-test."
+
+    if (Send-NotifyMux -Message $message) {
+        Write-LogMessage -Level "INFO" -Message "push-test succeeded."
+        Write-Output "push-test succeeded."
+        exit 0
+    }
+
+    Write-LogMessage -Level "ERROR" -Message "push-test failed."
+    [Console]::Error.WriteLine("push-test failed. See log: $LogFile")
+    exit 1
+}
+
+function Show-Help {
+    @"
+rclone-sync
+
+Usage:
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 [sync|dry-run|push-test|help]
+
+Commands:
+  sync       Run rclone sync. This is the default when no command is provided.
+  dry-run    Run rclone sync with --dry-run. No NotifyMux failure notification is sent.
+  push-test  Send one NotifyMux test notification. rclone and config are not checked.
+  help       Show this help message.
+
+Examples:
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 sync
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 dry-run
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\rclone-sync.ps1 push-test
+
+Configuration:
+  JobName, RclonePath, ConfigFile, SourceDir, DestDir, ExcludeList, LogDir,
+  NotifyMuxApiKey, NotifyMuxEndpoint
+"@
+}
+
+function Write-HelpToStderr {
+    $helpText = Show-Help | Out-String
+    [Console]::Error.WriteLine($helpText.TrimEnd())
+}
+
+function Main {
+    $command = if ($args.Count -gt 0) { [string]$args[0] } else { "sync" }
+
+    switch ($command) {
+        "sync" { }
+        "dry-run" { }
+        "push-test" { }
+        "help" {
+            Show-Help
+            exit 0
+        }
+        "-h" {
+            Show-Help
+            exit 0
+        }
+        "--help" {
+            Show-Help
+            exit 0
+        }
+        default {
+            Write-HelpToStderr
+            exit 64
+        }
+    }
+
+    if ($args.Count -gt 1) {
+        Write-HelpToStderr
+        exit 64
+    }
+
+    if (-not (Ensure-LogDir)) {
+        exit 1
+    }
+
+    switch ($command) {
+        "sync" {
+            Invoke-SyncCommand -DryRun $false
+        }
+        "dry-run" {
+            Invoke-SyncCommand -DryRun $true
+        }
+        "push-test" {
+            Invoke-PushTest
+        }
+    }
+}
+
 # --- Entry point ---
-Main
+Main @args
