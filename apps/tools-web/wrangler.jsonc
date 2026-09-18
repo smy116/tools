@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "smy-tools-web",
+  "name": "tools-web",
   "main": "src/index.ts",
   "compatibility_date": "2026-05-19",
   "assets": {
