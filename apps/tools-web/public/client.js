@@ -15,8 +15,15 @@
       if (!id) return;
 
       const value = input.value;
+      const token = "{{" + id + "}}";
+      if (!value && input.hasAttribute("data-optional")) {
+        // 可选参数留空时连同前面的空格一起移除
+        command = command.replaceAll(" " + token, "").replaceAll(token, "");
+        return;
+      }
+
       const replacement = value ? shellQuote(value) : fallbackToken(id);
-      command = command.replaceAll("{{" + id + "}}", replacement);
+      command = command.replaceAll(token, replacement);
       if (!value) complete = false;
     });
 

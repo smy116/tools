@@ -89,6 +89,8 @@ my-tool/
 - `sourceFiles[].delivery`：公开仓库文件使用 `asset`；外部或私有 URL 使用 `remote`。
 - `sourceFiles[].envKey`：可选，配置后可作为静态资源不可用时的远程兜底，或作为 `remote` 源文件 URL。
 
+- `shortcuts`：可选，为源文件配置站点根路径下的短链，见下文“快捷方式”。
+
 常用 `contentType`：
 
 ```text
@@ -100,6 +102,22 @@ JSON:       application/json; charset=utf-8
 文本:       text/plain; charset=utf-8
 ```
 
+## 快捷方式
+
+如需让 `https://<tools-origin>/<name>` 直接返回某个源文件，在 `tool.config.json` 中增加 `shortcuts`：
+
+```json
+"shortcuts": [
+  { "name": "init", "source": "init" }
+]
+```
+
+- `name`：小写 kebab-case，全站唯一；`tools`、`source` 为保留名，不能使用。
+- `source`：本工具 `sourceFiles[].id`。
+- 一个工具可以配置多个短链，也可以让多个短链指向同一个源文件。
+- 短链响应与 `/source/...` 路由完全一致，`asset`、`remote` 和 `envKey` 兜底同样生效。
+- 名称重复、使用保留名或引用不存在的源文件时，构建会直接失败。
+
 ## 命令模板
 
 命令中的源文件 URL 使用 `{{source:<id>}}` 占位：
@@ -109,6 +127,12 @@ JSON:       application/json; charset=utf-8
 ```
 
 页面渲染时会替换为当前访问域名下的完整 URL。
+
+配置了快捷方式的工具，可以用 `{{shortcut:<name>}}` 占位，渲染为 `https://<tools-origin>/<name>`，只能引用本工具定义的短链：
+
+```json
+"template": "sudo bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{shortcut:init}}\""
+```
 
 如果命令需要用户输入参数，增加 `inputs`，并在 `template` 中使用 `{{inputId}}` 占位：
 
@@ -165,6 +189,7 @@ npm run dev
 - 有输入参数的命令在未填写时显示“填写参数”。
 - 填写参数后，命令中的 `{{inputId}}` 被替换。
 - `/source/<tool>/<file>` 能返回源文件。
+- 如配置了快捷方式，`/<name>` 返回的内容与对应源文件一致。
 
 部署检查：
 

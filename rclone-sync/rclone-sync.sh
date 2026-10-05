@@ -34,6 +34,10 @@ EXCLUDE_LIST=""
 
 # 日志文件目录
 LOG_DIR="${SCRIPT_DIR}/logs"
+# 锁文件路径，防止同一任务并发执行 (需要 flock)
+LOCK_FILE="${SCRIPT_DIR}/.${JOB_NAME}.lock"
+# 失败通知中附带的最近错误日志行数
+NOTIFY_ERROR_LINES=5
 NOTIFYMUX_API_KEY="<YOUR NOTIFYMUX API KEY HERE>"
 NOTIFYMUX_ENDPOINT="https://push.smy.me/send"
 
@@ -52,8 +56,15 @@ timestamp() {
 log_message() {
     local level="$1"
     local message="$2"
+    local line
 
-    printf "[%s] [%s] %s\n" "$(timestamp)" "${level}" "${message}" >> "${LOG_FILE}"
+    printf -v line "[%s] [%s] %s" "$(timestamp)" "${level}" "${message}"
+    printf "%s\n" "${line}" >> "${LOG_FILE}"
+
+    # 交互式终端运行时同时输出到屏幕，cron 下只写日志
+    if [[ -t 2 ]]; then
+        >&2 printf "%s\n" "${line}"
+    fi
 }
 
 critical_stderr() {
@@ -151,6 +162,11 @@ build_rclone_opts() {
     if [[ "${dry_run}" == "true" ]]; then
         RCLONE_OPTS+=("--dry-run")
     fi
+
+    # 交互式终端运行时显示实时进度，日志仍写入 --log-file
+    if [[ -t 1 ]]; then
+        RCLONE_OPTS+=("--progress")
+    fi
 }
 
 format_rclone_command() {
@@ -210,6 +226,8 @@ send_notifymux() {
     log_message "INFO" "正在发送 NotifyMux 通知..."
     curl_response=$(
         curl -sS -w $'\nHTTP_STATUS:%{http_code}' -X POST \
+            --connect-timeout 10 \
+            --max-time 30 \
             -H "content-type: application/json" \
             -H "X-API-Key: ${NOTIFYMUX_API_KEY}" \
             --data "${payload}" \
@@ -243,38 +261,83 @@ run_sync() {
     "${RCLONE_PATH}" "${RCLONE_OPTS[@]}"
 }
 
+acquire_lock() {
+    if ! command -v flock >/dev/null 2>&1; then
+        log_message "WARNING" "未找到 flock，无法防止任务并发执行。"
+        return 0
+    fi
+
+    # fd 9 会被 rclone 子进程继承，锁在整个同步期间保持
+    if ! exec 9>>"${LOCK_FILE}"; then
+        log_message "ERROR" "无法打开锁文件: ${LOCK_FILE}"
+        exit 1
+    fi
+
+    if ! flock -n 9; then
+        log_message "WARNING" "任务 '${JOB_NAME}' 已有实例在运行，本次跳过。"
+        exit 0
+    fi
+}
+
+log_line_count() {
+    local count
+
+    count="$(wc -l < "${LOG_FILE}" 2>/dev/null)" || count=0
+    printf "%s" "$((count))"
+}
+
+# 提取日志中指定行之后的 rclone 错误，并去掉会破坏 JSON 的控制字符
+collect_rclone_errors() {
+    local start_line="$1"
+
+    tail -n "+$((start_line + 1))" "${LOG_FILE}" 2>/dev/null \
+        | grep -E 'ERROR|CRITICAL|Failed to' \
+        | tail -n "${NOTIFY_ERROR_LINES}" \
+        | tr -d '\000-\010\013\014\016-\037'
+}
+
 run_sync_command() {
     local dry_run="${1:-false}"
     local exit_code=0
     local message
     local mode_label="同步"
+    local log_start_line
+    local error_lines
 
     if [[ "${dry_run}" == "true" ]]; then
         mode_label="dry-run"
     fi
 
+    acquire_lock
+
     log_message "INFO" "==================== 任务 '${JOB_NAME}' ${mode_label} 开始于 $(timestamp) ===================="
 
-    if preflight_check; then
-        run_sync "${dry_run}"
-        exit_code=$?
-    else
+    if ! preflight_check; then
         exit_code=2
         message="任务 '${JOB_NAME}' 预检失败，未执行${mode_label}。源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'."
         log_message "ERROR" "${message}"
         if [[ "${dry_run}" != "true" ]]; then
             send_notifymux "${message}" || true
         fi
-    fi
+    else
+        log_start_line="$(log_line_count)"
+        run_sync "${dry_run}"
+        exit_code=$?
 
-    if [[ ${exit_code} -eq 0 ]]; then
-        message="任务 '${JOB_NAME}' ${mode_label}成功！源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'."
-        log_message "INFO" "${message}"
-    elif [[ ${exit_code} -ne 2 ]]; then
-        message="任务 '${JOB_NAME}' ${mode_label}失败！源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'. rclone 退出码: ${exit_code}."
-        log_message "ERROR" "${message}"
-        if [[ "${dry_run}" != "true" ]]; then
-            send_notifymux "${message}" || true
+        if [[ ${exit_code} -eq 0 ]]; then
+            message="任务 '${JOB_NAME}' ${mode_label}成功！源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'."
+            log_message "INFO" "${message}"
+        else
+            # 在写入脚本自身的失败日志之前收集，只保留 rclone 输出的错误
+            error_lines="$(collect_rclone_errors "${log_start_line}")"
+            message="任务 '${JOB_NAME}' ${mode_label}失败！源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'. rclone 退出码: ${exit_code}."
+            log_message "ERROR" "${message}"
+            if [[ "${dry_run}" != "true" ]]; then
+                if [[ -n "${error_lines}" ]]; then
+                    message+=$'\n\n最近错误:\n'"${error_lines}"
+                fi
+                send_notifymux "${message}" || true
+            fi
         fi
     fi
 
@@ -288,14 +351,12 @@ run_push_test() {
     local message
 
     if ! notifymux_configured; then
-        log_message "ERROR" "NotifyMux API Key 未配置，无法发送 push-test 通知。"
-        printf "NotifyMux API Key 未配置，请先填写 NOTIFYMUX_API_KEY。\n" >&2
+        log_message "ERROR" "NotifyMux API Key 未配置，请先填写 NOTIFYMUX_API_KEY。"
         exit 1
     fi
 
     if ! command -v curl >/dev/null 2>&1; then
         log_message "ERROR" "curl 不可用，无法发送 push-test 通知。"
-        printf "curl 不可用，无法发送 push-test 通知。\n" >&2
         exit 1
     fi
 
@@ -371,7 +432,6 @@ ensure_config_file() {
 
     if ! : > "${CONFIG_FILE}"; then
         log_message "ERROR" "无法创建空 rclone 配置文件: ${CONFIG_FILE}"
-        printf "无法创建空 rclone 配置文件: %s\n" "${CONFIG_FILE}" >&2
         return 1
     fi
 
@@ -393,7 +453,6 @@ install_rclone() {
 
     if ! command -v unzip >/dev/null 2>&1; then
         log_message "ERROR" "unzip 不可用，无法解压 rclone。"
-        printf "unzip 不可用，无法解压 rclone。\n" >&2
         exit 1
     fi
 
@@ -404,7 +463,6 @@ install_rclone() {
 
     mkdir -p "${extract_dir}"
     log_message "INFO" "正在下载 rclone: ${url}"
-    printf "Downloading rclone from %s\n" "${url}"
 
     if ! download_file "${url}" "${zip_path}"; then
         log_message "ERROR" "rclone 下载失败: ${url}"
@@ -476,7 +534,7 @@ Examples:
 
 Configuration:
   JOB_NAME, RCLONE_PATH, CONFIG_FILE, SOURCE_DIR, DEST_DIR, EXCLUDE_LIST, LOG_DIR,
-  NOTIFYMUX_API_KEY, NOTIFYMUX_ENDPOINT
+  LOCK_FILE, NOTIFY_ERROR_LINES, NOTIFYMUX_API_KEY, NOTIFYMUX_ENDPOINT
 EOF
 }
 

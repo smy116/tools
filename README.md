@@ -23,9 +23,9 @@ docs/                     项目维护文档
 - 校验 `slug`、源文件路由、命令占位符和输入参数。
 - 将各工具的 `readme.md` 转换为安全 HTML。
 - 复制公开源文件到 `apps/tools-web/public/source/`。
-- 生成 `apps/tools-web/src/generated/tools.ts`，供 Worker 渲染页面和处理 `/source/*` 使用。
+- 生成 `apps/tools-web/src/generated/tools.ts`，供 Worker 渲染页面和处理 `/source/*` 和短链路由使用。
 
-当前前端保留轻量 Worker 架构，不引入 React/Astro/Vite。`/tools` 是工具列表页，`/tools/<slug>` 是工具详情页，`/source/<tool>/<file>` 是统一源文件下载入口。
+当前前端保留轻量 Worker 架构，不引入 React/Astro/Vite。`/tools` 是工具列表页，`/tools/<slug>` 是工具详情页，`/source/<tool>/<file>` 是统一源文件下载入口，`/<shortcut>` 是在 `tool.config.json` 中配置的源文件短链（例如 `/init`）。
 
 ## Cloudflare Workers Builds 配置
 

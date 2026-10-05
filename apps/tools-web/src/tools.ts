@@ -21,12 +21,21 @@ export type SourceFile = {
   envKey?: string;
 };
 
+export type Shortcut = {
+  name: string;
+  toolSlug: string;
+  // 指向的源文件路由，例如 /source/linux-init/init.sh
+  route: string;
+};
+
 export type CommandInput = {
   id: string;
   label: string;
   placeholder: string;
   type: "password" | "text";
   quote: "posix";
+  // 留空时从命令中移除该参数；可选参数必须位于模板中所有必填参数之后
+  optional?: boolean;
 };
 
 export type CommandSpec = {
@@ -54,5 +63,6 @@ export type ToolPage = {
   accent: ToolAccent;
   readmeHtml: string;
   sourceFiles: SourceFile[];
+  shortcuts: Shortcut[];
   commands: CommandSpec[];
 };

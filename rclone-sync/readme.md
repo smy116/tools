@@ -128,6 +128,8 @@ Windows 任务计划程序的操作可以填写：
 - `DEST_DIR` / `DestDir`：同步目标，可以是本地路径，也可以是 rclone remote，例如 `backup:path/`。
 - `EXCLUDE_LIST` / `ExcludeList`：逗号分隔的排除规则，例如 `Public/**,*.tmp,cache/`。为空时不排除文件。
 - `LOG_DIR` / `LogDir`：日志目录，默认是脚本所在目录下的 `logs/`。脚本会按 `JOB_NAME_YYYYMM.log` 写入月度日志。
+- `LOCK_FILE`（仅 Bash 版）：锁文件路径，默认是脚本所在目录下的 `.<JOB_NAME>.lock`。上一次 `sync` / `dry-run` 尚未结束时，新触发的任务会记录警告并跳过；需要系统提供 `flock`。
+- `NOTIFY_ERROR_LINES`（仅 Bash 版）：同步失败通知中附带的 rclone 最近错误日志行数，默认 `5`。
 - `NOTIFYMUX_API_KEY` / `NotifyMuxApiKey`：NotifyMux API Key。只需要填写这个密钥即可发送失败通知。
 - `NOTIFYMUX_ENDPOINT` / `NotifyMuxEndpoint`：NotifyMux API 端点，默认是 `https://push.smy.me/send`，通常不需要修改。
 

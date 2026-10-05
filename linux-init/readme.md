@@ -23,7 +23,7 @@
 从工具站在内存中加载脚本并打开交互式菜单：
 
 ```bash
-sudo bash -c 'bash <(curl -fsSL "$1")' _ "https://<tools-origin>/source/linux-init/init.sh"
+sudo bash -c 'bash <(curl -fsSL "$1")' _ "https://<tools-origin>/init"
 ```
 
 如果已经克隆本仓库，也可以直接在本目录执行：
@@ -39,13 +39,14 @@ sudo bash init.sh ca
 sudo bash init.sh sshport
 sudo bash init.sh root '<root-password>'
 sudo bash init.sh nezha '<nezha-client-secret>'
+sudo bash init.sh nezha '<nezha-client-secret>' '<uuid>'
 sudo bash init.sh caddy
 ```
 
-通过工具站源文件在内存中执行快捷参数时：
+通过工具站短链在内存中执行快捷参数时：
 
 ```bash
-sudo bash -c 'bash <(curl -fsSL "$1") "$2"' _ "https://<tools-origin>/source/linux-init/init.sh" ca
+sudo bash -c 'bash <(curl -fsSL "$1") "$2"' _ "https://<tools-origin>/init" ca
 ```
 
 工具站命令使用 Bash process substitution 在内存中加载远端脚本，不会把主脚本写入 `/tmp`。交互式菜单也可以继续从当前终端读取输入。
@@ -55,7 +56,7 @@ sudo bash -c 'bash <(curl -fsSL "$1") "$2"' _ "https://<tools-origin>/source/lin
 - `ca`：安装 SMY Root CA 到系统信任库。
 - `sshport`：将 SSH 端口改为 `54422` 并重启 SSH 服务。
 - `root <root-password>`：设置 root 密码，并写入脚本内置 SSH 公钥。
-- `nezha <nezha-client-secret>`：使用指定客户端密钥安装 Nezha Agent。
+- `nezha <nezha-client-secret> [uuid]`：使用指定客户端密钥安装 Nezha Agent；可选传入 UUID 以复用已有节点，未传入时交互式运行会询问，留空则由安装脚本自动生成。
 - `caddy`：安装 Caddy，并根据提示写入站点配置。
 
 Nginx 安装、时区设置、系统重启等操作可通过交互式菜单执行。

@@ -25,6 +25,12 @@
       "envKey": "LINUX_INIT_SH_URL"
     }
   ],
+  "shortcuts": [
+    {
+      "name": "init",
+      "source": "init"
+    }
+  ],
   "commands": [
     {
       "id": "linux-menu",
@@ -35,7 +41,7 @@
       "badges": [
         "root"
       ],
-      "template": "bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{source:init}}\""
+      "template": "bash -c 'bash <(curl -fsSL \"$1\")' _ \"{{shortcut:init}}\""
     },
     {
       "id": "linux-ca",
@@ -46,7 +52,7 @@
       "badges": [
         "root"
       ],
-      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" ca"
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{shortcut:init}}\" ca"
     },
     {
       "id": "linux-sshport",
@@ -58,7 +64,7 @@
         "root",
         "SSH"
       ],
-      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" sshport"
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{shortcut:init}}\" sshport"
     },
     {
       "id": "linux-root",
@@ -79,12 +85,12 @@
           "quote": "posix"
         }
       ],
-      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:init}}\" root {{rootPassword}}"
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{shortcut:init}}\" root {{rootPassword}}"
     },
     {
       "id": "linux-nezha",
       "title": "安装 Nezha Agent",
-      "description": "使用你在本地输入的客户端密钥安装 Nezha Agent。",
+      "description": "使用你在本地输入的客户端密钥安装 Nezha Agent；填写 UUID 可复用已有节点，留空则自动生成。",
       "platform": "Linux",
       "language": "bash",
       "badges": [
@@ -98,9 +104,17 @@
           "placeholder": "请输入客户端密钥",
           "type": "password",
           "quote": "posix"
+        },
+        {
+          "id": "nezhaUuid",
+          "label": "Nezha Agent UUID",
+          "placeholder": "留空则自动生成",
+          "type": "text",
+          "quote": "posix",
+          "optional": true
         }
       ],
-      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\"' _ \"{{source:init}}\" nezha {{nezhaSecret}}"
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\" \"$3\" \"$4\"' _ \"{{shortcut:init}}\" nezha {{nezhaSecret}} {{nezhaUuid}}"
     },
     {
       "id": "linux-caddy",
@@ -111,7 +125,7 @@
       "badges": [
         "root"
       ],
-      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{source:init}}\" caddy"
+      "template": "bash -c 'bash <(curl -fsSL \"$1\") \"$2\"' _ \"{{shortcut:init}}\" caddy"
     }
   ]
 }

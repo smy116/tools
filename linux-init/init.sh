@@ -1328,7 +1328,7 @@ main() {
             ;;
         nezha)
             if [[ -z "${2:-}" ]]; then
-                fail "Usage: $SCRIPT_NAME nezha <nezha-client-secret>"
+                fail "Usage: $SCRIPT_NAME nezha <nezha-client-secret> [uuid]"
             fi
             install_nezha "$2" "${3:-}"
             ;;

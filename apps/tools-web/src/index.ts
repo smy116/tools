@@ -1,4 +1,4 @@
-import { sourceFiles, toolPages } from "./generated/tools.ts";
+import { shortcuts, sourceFiles, toolPages } from "./generated/tools.ts";
 import type { CommandInput, CommandSpec, Env, SourceFile, ToolPage } from "./tools.ts";
 
 const HTML_HEADERS = {
@@ -29,6 +29,11 @@ export default {
     const activeTool = toolPages.find((tool) => tool.route === url.pathname);
     if (activeTool) {
       return html(renderToolPage(activeTool, url.origin));
+    }
+
+    const shortcut = shortcuts[url.pathname.replace(/\/+$/, "")];
+    if (shortcut) {
+      return serveSource(request, url, sourceFiles[shortcut.route], env);
     }
 
     return html(renderNotFound(), 404);
@@ -209,6 +214,10 @@ function renderSourcePanel(tool: ToolPage, origin: string): string {
     ${tool.sourceFiles.map((source) => `<a class="block rounded-md border border-line bg-stone-50 p-3 transition hover:border-zinc-300 hover:bg-white" href="${escapeAttr(source.route)}">
       <span class="block text-sm font-semibold text-zinc-950">${escapeHtml(source.label)}</span>
       <span class="mt-1 block break-all text-xs leading-5 text-zinc-500">${escapeHtml(`${origin}${source.route}`)}</span>
+      ${tool.shortcuts
+        .filter((shortcut) => shortcut.route === source.route)
+        .map((shortcut) => `<span class="mt-1 block break-all text-xs leading-5 text-emerald-800">短链：${escapeHtml(`${origin}/${shortcut.name}`)}</span>`)
+        .join("")}
     </a>`).join("")}
   </div>
 </section>`;
@@ -236,7 +245,7 @@ function renderHeaderSearch(): string {
 }
 
 function renderCommand(command: CommandSpec, tool: ToolPage, origin: string): string {
-  const required = command.inputs?.map((input) => input.id).join(",") ?? "";
+  const required = command.inputs?.filter((input) => !input.optional).map((input) => input.id).join(",") ?? "";
   const template = resolveSourcePlaceholders(command.template, tool, origin);
 
   return `<article class="min-w-0 overflow-hidden rounded-lg border border-line bg-white shadow-sm" data-command-card data-command-id="${escapeAttr(command.id)}">
@@ -274,8 +283,8 @@ function renderInputs(command: CommandSpec): string {
 
 function renderInput(commandId: string, input: CommandInput): string {
   return `<label class="grid gap-1.5 text-sm font-medium text-zinc-700">
-  <span>${escapeHtml(input.label)}</span>
-  <input class="h-10 rounded-md border border-line bg-white px-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" type="${escapeAttr(input.type)}" placeholder="${escapeAttr(input.placeholder)}" autocomplete="off" data-command-input data-command-id="${escapeAttr(commandId)}" data-input-id="${escapeAttr(input.id)}" data-quote="${escapeAttr(input.quote)}">
+  <span>${escapeHtml(input.label)}${input.optional ? `<span class="ml-1 font-normal text-zinc-400">（可选）</span>` : ""}</span>
+  <input class="h-10 rounded-md border border-line bg-white px-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" type="${escapeAttr(input.type)}" placeholder="${escapeAttr(input.placeholder)}" autocomplete="off" data-command-input data-command-id="${escapeAttr(commandId)}" data-input-id="${escapeAttr(input.id)}" data-quote="${escapeAttr(input.quote)}"${input.optional ? " data-optional" : ""}>
 </label>`;
 }
 
@@ -309,10 +318,15 @@ function renderHead(title: string, description: string): string {
 }
 
 function resolveSourcePlaceholders(template: string, tool: ToolPage, origin: string): string {
-  return template.replace(/\{\{source:([^}]+)\}\}/g, (_match, sourceId: string) => {
-    const source = tool.sourceFiles.find((item) => item.id === sourceId);
-    return source ? `${origin}${source.route}` : `<missing-source:${sourceId}>`;
-  });
+  return template
+    .replace(/\{\{source:([^}]+)\}\}/g, (_match, sourceId: string) => {
+      const source = tool.sourceFiles.find((item) => item.id === sourceId);
+      return source ? `${origin}${source.route}` : `<missing-source:${sourceId}>`;
+    })
+    .replace(/\{\{shortcut:([^}]+)\}\}/g, (_match, name: string) => {
+      const shortcut = tool.shortcuts.find((item) => item.name === name);
+      return shortcut ? `${origin}/${shortcut.name}` : `<missing-shortcut:${name}>`;
+    });
 }
 
 function renderBadge(value: string, tone: "neutral" | "soft"): string {
