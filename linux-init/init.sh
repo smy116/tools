@@ -867,6 +867,7 @@ install_nezha() {
         NZ_TLS="true"
         NZ_CLIENT_SECRET="$client_secret"
         NZ_DISABLE_COMMAND_EXECUTE="true"
+        NZ_DISABLE_NAT="true"
     )
     [[ -n "$agent_uuid" ]] && env_args+=(NZ_UUID="$agent_uuid")
     env "${env_args[@]}" "$installer_path"
