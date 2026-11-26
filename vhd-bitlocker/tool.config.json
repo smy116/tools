@@ -2,16 +2,16 @@
   "slug": "vhd-bitlocker",
   "title": "vhd-bitlocker",
   "category": "Windows 加密磁盘",
-  "summary": "在 Windows 上一键挂载或卸载固定 VHDX，并自动解锁或锁定其中的 BitLocker 卷。",
+  "summary": "在 Windows 上通过交互式主菜单管理固定 VHDX：挂载解锁、锁定卸载、密码维护、备份到 U 盘，并支持登录后自动解密挂载。",
   "platforms": [
     "Windows"
   ],
   "tags": [
     "VHDX",
     "BitLocker",
+    "rclone",
     "管理员",
-    "PowerShell",
-    "DPAPI"
+    "开机自启"
   ],
   "order": 50,
   "accent": "emerald",
@@ -31,7 +31,7 @@
     {
       "id": "vhd-bitlocker-download",
       "title": "下载并解压工具包",
-      "description": "下载 vhd-bitlocker Windows 工具包到当前目录，并解压出可双击使用的脚本文件。",
+      "description": "下载 vhd-bitlocker Windows 工具包到当前目录，解压出主脚本、配置文件和 rclone 同步套件。",
       "platform": "Windows",
       "language": "powershell",
       "badges": [
@@ -42,49 +42,86 @@
     },
     {
       "id": "vhd-bitlocker-edit-config",
-      "title": "创建并编辑配置",
-      "description": "进入解压后的工具目录，按样例创建 config.ini，并用记事本编辑 VHDX 路径和安全卸载选项。",
+      "title": "编辑配置文件",
+      "description": "打开 config.ini，把 VhdxPath 改为真实存在的 VHDX 路径；密码、卸载策略等选项可在主菜单里维护。",
       "platform": "Windows",
       "language": "powershell",
       "badges": [
         "本机配置"
       ],
-      "template": "Set-Location \".\\vhd-bitlocker\"; if (-not (Test-Path -LiteralPath \".\\config.ini\")) { Copy-Item -LiteralPath \".\\config.sample.ini\" -Destination \".\\config.ini\" }; notepad \".\\config.ini\""
+      "template": "notepad \".\\vhd-bitlocker\\config.ini\""
+    },
+    {
+      "id": "vhd-bitlocker-menu",
+      "title": "打开管理主菜单",
+      "description": "启动交互式主菜单，查看状态后选择挂载解锁、锁定卸载、密码维护、备份或开机自启；需要 UAC 管理员授权。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "管理员",
+        "推荐"
+      ],
+      "template": ".\\vhd-bitlocker\\start.cmd"
     },
     {
       "id": "vhd-bitlocker-toggle",
-      "title": "打开或关闭加密磁盘",
-      "description": "执行本地 start.cmd：未挂载时挂载并解锁，已挂载时锁定并卸载；需要时会触发 UAC 管理员确认。",
+      "title": "一键切换开关",
+      "description": "未挂载时挂载并解锁，已挂载时锁定并卸载；适合创建桌面快捷方式或配合脚本调用。",
       "platform": "Windows",
       "language": "powershell",
       "badges": [
         "管理员",
         "BitLocker"
       ],
-      "template": ".\\vhd-bitlocker\\start.cmd"
+      "template": ".\\vhd-bitlocker\\start.cmd -Action Toggle"
     },
     {
       "id": "vhd-bitlocker-status",
       "title": "查看当前状态",
-      "description": "只查看 VHDX 是否挂载、盘符和 BitLocker 锁定状态，不会修改磁盘状态。",
+      "description": "输出镜像文件、挂载状态、盘符、BitLocker 锁定状态和本地密码状态，不会修改磁盘。",
       "platform": "Windows",
       "language": "powershell",
       "badges": [
-        "只读"
+        "只读",
+        "管理员"
       ],
-      "template": ".\\vhd-bitlocker\\status.cmd"
+      "template": ".\\vhd-bitlocker\\start.cmd -Action Status -PauseOnExit"
     },
     {
-      "id": "vhd-bitlocker-reset-password",
-      "title": "重新保存密码",
-      "description": "当 BitLocker 密码改过、输错过，或想重新保存本机 DPAPI 密文时执行。",
+      "id": "vhd-bitlocker-backup",
+      "title": "备份 VHDX 与同步套件",
+      "description": "选择 U 盘或目录，把 VHDX 镜像和 rclone 同步套件一起复制过去；已挂载时会先询问是否锁定并卸载。",
       "platform": "Windows",
       "language": "powershell",
       "badges": [
-        "本地输入",
-        "DPAPI"
+        "备份",
+        "U 盘"
       ],
-      "template": ".\\vhd-bitlocker\\reset-password.cmd"
+      "template": ".\\vhd-bitlocker\\start.cmd -Action Backup"
+    },
+    {
+      "id": "vhd-bitlocker-autostart",
+      "title": "启用开机自动解密挂载",
+      "description": "注册登录后延迟自动挂载解锁的 Windows 计划任务；需要先保存可解密的 BitLocker 密码，延迟秒数可在窗口内设置。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "开机自启",
+        "计划任务"
+      ],
+      "template": ".\\vhd-bitlocker\\start.cmd -Action EnableAutoStart"
+    },
+    {
+      "id": "vhd-bitlocker-sync",
+      "title": "运行 rclone 同步",
+      "description": "挂载并解锁虚拟磁盘后，把其中的文件同步到本地目录或 rclone 远程，结束后按原状态自动卸载。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "rclone",
+        "同步"
+      ],
+      "template": ".\\vhd-bitlocker\\rclone-sync\\sync.cmd"
     }
   ]
 }

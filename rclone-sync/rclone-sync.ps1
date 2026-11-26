@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 #===============================================================================
-# Description: Sync data with rclone and send NotifyMux notifications on failure.
+# Description: Sync data with rclone and send SMY Push notifications on failure.
 # Author: SMY
 #===============================================================================
 
@@ -44,8 +44,8 @@ $ExcludeList = ""
 
 # Log directory.
 $LogDir = Join-Path $ScriptDir "logs"
-$NotifyMuxApiKey = "<YOUR NOTIFYMUX API KEY HERE>"
-$NotifyMuxEndpoint = "https://push.smy.me/send"
+$SmyPushApiKey = "<YOUR SMY PUSH API KEY HERE>"
+$SmyPushEndpoint = "https://push.smy.me/send"
 
 # --- Global values ---
 # Use one log file per month.
@@ -123,12 +123,12 @@ function Resolve-RclonePath {
     return $command.Source
 }
 
-function Test-NotifyMuxConfigured {
-    if ([string]::IsNullOrWhiteSpace($NotifyMuxApiKey)) {
+function Test-SmyPushConfigured {
+    if ([string]::IsNullOrWhiteSpace($SmyPushApiKey)) {
         return $false
     }
 
-    return -not $NotifyMuxApiKey.Contains("<YOUR NOTIFYMUX API KEY HERE>")
+    return -not $SmyPushApiKey.Contains("<YOUR SMY PUSH API KEY HERE>")
 }
 
 function Test-Preflight {
@@ -145,8 +145,8 @@ function Test-Preflight {
         $status = $false
     }
 
-    if (-not (Test-NotifyMuxConfigured)) {
-        Write-LogMessage -Level "WARNING" -Message "NotifyMux API Key is not configured or still uses the placeholder; failure notifications will be skipped."
+    if (-not (Test-SmyPushConfigured)) {
+        Write-LogMessage -Level "WARNING" -Message "SMY Push API Key is not configured or still uses the placeholder; failure notifications will be skipped."
     }
 
     return $status
@@ -228,18 +228,18 @@ function Format-RcloneCommand {
     return (($parts | ForEach-Object { Format-CommandArgument -Value ([string]$_) }) -join " ")
 }
 
-function Send-NotifyMux {
+function Send-SmyPush {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Message
     )
 
-    if (-not (Test-NotifyMuxConfigured)) {
-        Write-LogMessage -Level "WARNING" -Message "NotifyMux API Key is not configured; skipping failure notification."
+    if (-not (Test-SmyPushConfigured)) {
+        Write-LogMessage -Level "WARNING" -Message "SMY Push API Key is not configured; skipping failure notification."
         return $true
     }
 
-    Write-LogMessage -Level "INFO" -Message "Sending NotifyMux notification..."
+    Write-LogMessage -Level "INFO" -Message "Sending SMY Push notification..."
 
     $notifyTitle = "Rclone Sync: $JobName"
     $payload = @{
@@ -253,10 +253,10 @@ function Send-NotifyMux {
     } | ConvertTo-Json -Depth 4
 
     $requestParams = @{
-        Uri = $NotifyMuxEndpoint
+        Uri = $SmyPushEndpoint
         Method = "Post"
         Headers = @{
-            "X-API-Key" = $NotifyMuxApiKey
+            "X-API-Key" = $SmyPushApiKey
         }
         Body = $payload
         ContentType = "application/json"
@@ -270,14 +270,14 @@ function Send-NotifyMux {
     try {
         $response = Invoke-WebRequest @requestParams
         if ([int]$response.StatusCode -eq 200) {
-            Write-LogMessage -Level "INFO" -Message "NotifyMux notification sent."
+            Write-LogMessage -Level "INFO" -Message "SMY Push notification sent."
             return $true
         }
 
-        Write-LogMessage -Level "ERROR" -Message "NotifyMux notification failed. HTTP status: $($response.StatusCode). Response: $($response.Content)"
+        Write-LogMessage -Level "ERROR" -Message "SMY Push notification failed. HTTP status: $($response.StatusCode). Response: $($response.Content)"
         return $false
     } catch {
-        Write-LogMessage -Level "ERROR" -Message "NotifyMux notification failed: $($_.Exception.Message)"
+        Write-LogMessage -Level "ERROR" -Message "SMY Push notification failed: $($_.Exception.Message)"
         return $false
     }
 }
@@ -320,7 +320,7 @@ function Invoke-SyncCommand {
         $message = "Job '$JobName' preflight failed; $modeLabel was not executed. Source: '$SourceDir' -> Destination: '$DestDir'."
         Write-LogMessage -Level "ERROR" -Message $message
         if (-not $DryRun) {
-            Send-NotifyMux -Message $message | Out-Null
+            Send-SmyPush -Message $message | Out-Null
         }
     }
 
@@ -331,7 +331,7 @@ function Invoke-SyncCommand {
         $message = "Job '$JobName' $modeLabel failed. Source: '$SourceDir' -> Destination: '$DestDir'. rclone exit code: $exitCode."
         Write-LogMessage -Level "ERROR" -Message $message
         if (-not $DryRun) {
-            Send-NotifyMux -Message $message | Out-Null
+            Send-SmyPush -Message $message | Out-Null
         }
     }
 
@@ -342,16 +342,16 @@ function Invoke-SyncCommand {
 }
 
 function Invoke-PushTest {
-    if (-not (Test-NotifyMuxConfigured)) {
-        Write-LogMessage -Level "ERROR" -Message "NotifyMux API Key is not configured; push-test cannot be sent."
-        [Console]::Error.WriteLine("NotifyMux API Key is not configured. Set NotifyMuxApiKey first.")
+    if (-not (Test-SmyPushConfigured)) {
+        Write-LogMessage -Level "ERROR" -Message "SMY Push API Key is not configured; push-test cannot be sent."
+        [Console]::Error.WriteLine("SMY Push API Key is not configured. Set SmyPushApiKey first.")
         exit 1
     }
 
-    $message = "rclone-sync push-test test message. Job '$JobName' can reach NotifyMux."
+    $message = "rclone-sync push-test test message. Job '$JobName' can reach SMY Push."
     Write-LogMessage -Level "INFO" -Message "Running push-test."
 
-    if (Send-NotifyMux -Message $message) {
+    if (Send-SmyPush -Message $message) {
         Write-LogMessage -Level "INFO" -Message "push-test succeeded."
         Write-Output "push-test succeeded."
         exit 0
@@ -462,8 +462,8 @@ Usage:
 
 Commands:
   sync            Run rclone sync. This is the default when no command is provided.
-  dry-run         Run rclone sync with --dry-run. No NotifyMux failure notification is sent.
-  push-test       Send one NotifyMux test notification. rclone and config are not checked.
+  dry-run         Run rclone sync with --dry-run. No SMY Push failure notification is sent.
+  push-test       Send one SMY Push test notification. rclone and config are not checked.
   install-rclone  Download the latest rclone into the script directory.
   help            Show this help message.
 
@@ -476,7 +476,7 @@ Examples:
 
 Configuration:
   JobName, RclonePath, ConfigFile, SourceDir, DestDir, ExcludeList, LogDir,
-  NotifyMuxApiKey, NotifyMuxEndpoint
+  SmyPushApiKey, SmyPushEndpoint
 "@
 }
 

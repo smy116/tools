@@ -1,10 +1,10 @@
 # rclone-sync
 
-`rclone-sync` 是面向 Linux 和 Windows 服务器的 rclone 同步脚本，适合通过手动执行、cron 或 Windows 任务计划程序，把一个本地目录或 rclone 远程路径同步到另一个本地目录或远程路径。脚本会按月写入日志，并在预检或同步失败时发送 NotifyMux 通知。
+`rclone-sync` 是面向 Linux 和 Windows 服务器的 rclone 同步脚本，适合通过手动执行、cron 或 Windows 任务计划程序，把一个本地目录或 rclone 远程路径同步到另一个本地目录或远程路径。脚本会按月写入日志，并在预检或同步失败时发送 SMY Push 通知。
 
 ## 文件说明
 
-- `rclone-sync.sh`：Bash 同步脚本，包含 rclone 参数、日志记录、预检、排除规则和 NotifyMux 通知逻辑。
+- `rclone-sync.sh`：Bash 同步脚本，包含 rclone 参数、日志记录、预检、排除规则和 SMY Push 通知逻辑。
 - `rclone-sync.ps1`：PowerShell 同步脚本，功能与 Bash 版一致，适合 Windows PowerShell 5.1+ 或 PowerShell 7。
 
 ## 使用方法
@@ -66,7 +66,7 @@ bash ./rclone-sync.sh sync
 bash ./rclone-sync.sh dry-run
 ```
 
-只发送一条 NotifyMux 测试通知，不检查 rclone 配置，也不执行同步：
+只发送一条 SMY Push 测试通知，不检查 rclone 配置，也不执行同步：
 
 ```bash
 bash ./rclone-sync.sh push-test
@@ -121,7 +121,7 @@ Windows 任务计划程序的操作可以填写：
 
 ## 参数说明
 
-- `JOB_NAME` / `JobName`：任务名称，用于日志文件名和 NotifyMux 通知标题；通知标题格式为 `Rclone Sync: <任务名称>`。
+- `JOB_NAME` / `JobName`：任务名称，用于日志文件名和 SMY Push 通知标题；通知标题格式为 `Rclone Sync: <任务名称>`。
 - `RCLONE_PATH` / `RclonePath`：rclone 可执行文件路径，默认是脚本所在目录下的 `rclone`；PowerShell 版也会兼容同目录下的 `rclone.exe`。
 - `CONFIG_FILE` / `ConfigFile`：rclone 配置文件路径，默认是脚本所在目录下的 `rclone.conf`。
 - `SOURCE_DIR` / `SourceDir`：同步源，可以是本地路径，也可以是 rclone remote，例如 `minio:bucket/path/`。
@@ -130,8 +130,8 @@ Windows 任务计划程序的操作可以填写：
 - `LOG_DIR` / `LogDir`：日志目录，默认是脚本所在目录下的 `logs/`。脚本会按 `JOB_NAME_YYYYMM.log` 写入月度日志。
 - `LOCK_FILE`（仅 Bash 版）：锁文件路径，默认是脚本所在目录下的 `.<JOB_NAME>.lock`。上一次 `sync` / `dry-run` 尚未结束时，新触发的任务会记录警告并跳过；需要系统提供 `flock`。
 - `NOTIFY_ERROR_LINES`（仅 Bash 版）：同步失败通知中附带的 rclone 最近错误日志行数，默认 `5`。
-- `NOTIFYMUX_API_KEY` / `NotifyMuxApiKey`：NotifyMux API Key。只需要填写这个密钥即可发送失败通知。
-- `NOTIFYMUX_ENDPOINT` / `NotifyMuxEndpoint`：NotifyMux API 端点，默认是 `https://push.smy.me/send`，通常不需要修改。
+- `SMY_PUSH_API_KEY` / `SmyPushApiKey`：SMY Push API Key。只需要填写这个密钥即可发送失败通知。
+- `SMY_PUSH_ENDPOINT` / `SmyPushEndpoint`：SMY Push API 端点，默认是 `https://push.smy.me/send`，通常不需要修改。
 
 ## 注意事项
 
@@ -141,5 +141,5 @@ Windows 任务计划程序的操作可以填写：
 - `rclone sync` 会让目标端尽量镜像源端；源端删除的文件可能会在目标端删除。首次使用建议先执行 `dry-run` 指令测试。
 - 脚本默认包含 `--delete-excluded`，被排除规则匹配到的目标端文件也会被删除，请确认符合预期。
 - 脚本默认包含 `--no-check-certificate`，会跳过 TLS 证书校验。只有在自签名证书或内网环境确有需要时再保留。
-- NotifyMux API Key、remote 名称和配置文件路径可能暴露内部信息，请不要把包含真实 API Key 的修改提交到仓库。
+- SMY Push API Key、remote 名称和配置文件路径可能暴露内部信息，请不要把包含真实 API Key 的修改提交到仓库。
 - 通过 cron 或 Windows 任务计划程序运行时建议全部使用绝对路径，并确认运行用户有日志目录、源目录和目标目录的读写权限。

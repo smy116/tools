@@ -2,7 +2,7 @@
   "slug": "rclone-sync",
   "title": "rclone-sync",
   "category": "Rclone 备份",
-  "summary": "使用 rclone 在 Linux 或 Windows 服务器上执行本地目录或远程存储之间的同步，并记录日志、按需发送 NotifyMux 失败通知。",
+  "summary": "使用 rclone 在 Linux 或 Windows 服务器上执行本地目录或远程存储之间的同步，并记录日志、按需发送 SMY Push 失败通知。",
   "platforms": [
     "Linux",
     "Windows"
@@ -12,7 +12,7 @@
     "备份",
     "Cron",
     "PowerShell",
-    "NotifyMux"
+    "SMY Push"
   ],
   "order": 30,
   "accent": "amber",
@@ -66,7 +66,7 @@
     {
       "id": "rclone-sync-run-local",
       "title": "执行本地脚本",
-      "description": "在已经确认 NotifyMux API Key、rclone 路径、配置文件、源端和目标端后执行同步。",
+      "description": "在已经确认 SMY Push API Key、rclone 路径、配置文件、源端和目标端后执行同步。",
       "platform": "Linux",
       "language": "bash",
       "badges": [
@@ -89,12 +89,12 @@
     },
     {
       "id": "rclone-sync-push-test",
-      "title": "NotifyMux 推送测试",
-      "description": "只发送一条 NotifyMux 测试通知，不检查 rclone 配置，也不执行同步。",
+      "title": "SMY Push 推送测试",
+      "description": "只发送一条 SMY Push 测试通知，不检查 rclone 配置，也不执行同步。",
       "platform": "Linux",
       "language": "bash",
       "badges": [
-        "NotifyMux",
+        "SMY Push",
         "测试"
       ],
       "template": "bash ./rclone-sync.sh push-test"
@@ -125,7 +125,7 @@
     {
       "id": "rclone-sync-run-local-ps1",
       "title": "执行本地 PowerShell 脚本",
-      "description": "在已经确认 NotifyMux API Key、rclone 路径、配置文件、源端和目标端后执行同步。",
+      "description": "在已经确认 SMY Push API Key、rclone 路径、配置文件、源端和目标端后执行同步。",
       "platform": "Windows",
       "language": "powershell",
       "badges": [
@@ -148,12 +148,12 @@
     },
     {
       "id": "rclone-sync-push-test-ps1",
-      "title": "PowerShell NotifyMux 推送测试",
-      "description": "只发送一条 NotifyMux 测试通知，不检查 rclone 配置，也不执行同步。",
+      "title": "PowerShell SMY Push 推送测试",
+      "description": "只发送一条 SMY Push 测试通知，不检查 rclone 配置，也不执行同步。",
       "platform": "Windows",
       "language": "powershell",
       "badges": [
-        "NotifyMux",
+        "SMY Push",
         "测试"
       ],
       "template": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\rclone-sync.ps1 push-test"

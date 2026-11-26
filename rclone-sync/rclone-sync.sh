@@ -4,7 +4,7 @@ set -u
 set -o pipefail
 
 #===============================================================================
-# 描述: 使用 rclone 将数据同步，并发送 NotifyMux 通知。
+# 描述: 使用 rclone 将数据同步，并发送 SMY Push 通知。
 # 作者: SMY
 #===============================================================================
 
@@ -38,8 +38,8 @@ LOG_DIR="${SCRIPT_DIR}/logs"
 LOCK_FILE="${SCRIPT_DIR}/.${JOB_NAME}.lock"
 # 失败通知中附带的最近错误日志行数
 NOTIFY_ERROR_LINES=5
-NOTIFYMUX_API_KEY="<YOUR NOTIFYMUX API KEY HERE>"
-NOTIFYMUX_ENDPOINT="https://push.smy.me/send"
+SMY_PUSH_API_KEY="<YOUR SMY PUSH API KEY HERE>"
+SMY_PUSH_ENDPOINT="https://push.smy.me/send"
 
 # --- 全局变量 ---
 # 每月一个日志文件
@@ -100,18 +100,18 @@ preflight_check() {
     fi
 
     if ! command -v curl >/dev/null 2>&1; then
-        log_message "WARNING" "未找到 curl；如果任务失败，将无法发送 NotifyMux 通知。"
+        log_message "WARNING" "未找到 curl；如果任务失败，将无法发送 SMY Push 通知。"
     fi
 
-    if [[ -z "${NOTIFYMUX_API_KEY}" || "${NOTIFYMUX_API_KEY}" == *"<YOUR NOTIFYMUX API KEY HERE>"* ]]; then
-        log_message "WARNING" "NotifyMux API Key 未配置或仍为占位符；失败通知将被跳过。"
+    if [[ -z "${SMY_PUSH_API_KEY}" || "${SMY_PUSH_API_KEY}" == *"<YOUR SMY PUSH API KEY HERE>"* ]]; then
+        log_message "WARNING" "SMY Push API Key 未配置或仍为占位符；失败通知将被跳过。"
     fi
 
     return "${status}"
 }
 
-notifymux_configured() {
-    [[ -n "${NOTIFYMUX_API_KEY}" && "${NOTIFYMUX_API_KEY}" != *"<YOUR NOTIFYMUX API KEY HERE>"* ]]
+smy_push_configured() {
+    [[ -n "${SMY_PUSH_API_KEY}" && "${SMY_PUSH_API_KEY}" != *"<YOUR SMY PUSH API KEY HERE>"* ]]
 }
 
 trim_whitespace() {
@@ -187,7 +187,7 @@ json_escape() {
     printf "%s" "${value}"
 }
 
-build_notifymux_payload() {
+build_smy_push_payload() {
     local message="$1"
     local title
     local body
@@ -203,7 +203,7 @@ build_notifymux_payload() {
         "${job}"
 }
 
-send_notifymux() {
+send_smy_push() {
     local message="$1"
     local curl_response
     local curl_exit_code
@@ -211,32 +211,32 @@ send_notifymux() {
     local response_body
     local payload
 
-    if ! notifymux_configured; then
-        log_message "WARNING" "NotifyMux API Key 未配置，跳过失败通知。"
+    if ! smy_push_configured; then
+        log_message "WARNING" "SMY Push API Key 未配置，跳过失败通知。"
         return 0
     fi
 
     if ! command -v curl >/dev/null 2>&1; then
-        log_message "ERROR" "curl 不可用，无法发送 NotifyMux 通知。"
+        log_message "ERROR" "curl 不可用，无法发送 SMY Push 通知。"
         return 1
     fi
 
-    payload="$(build_notifymux_payload "${message}")"
+    payload="$(build_smy_push_payload "${message}")"
 
-    log_message "INFO" "正在发送 NotifyMux 通知..."
+    log_message "INFO" "正在发送 SMY Push 通知..."
     curl_response=$(
         curl -sS -w $'\nHTTP_STATUS:%{http_code}' -X POST \
             --connect-timeout 10 \
             --max-time 30 \
             -H "content-type: application/json" \
-            -H "X-API-Key: ${NOTIFYMUX_API_KEY}" \
+            -H "X-API-Key: ${SMY_PUSH_API_KEY}" \
             --data "${payload}" \
-            "${NOTIFYMUX_ENDPOINT}" 2>&1
+            "${SMY_PUSH_ENDPOINT}" 2>&1
     )
     curl_exit_code=$?
 
     if [[ ${curl_exit_code} -ne 0 ]]; then
-        log_message "ERROR" "NotifyMux 通知发送失败 (curl 退出码: ${curl_exit_code}): ${curl_response}"
+        log_message "ERROR" "SMY Push 通知发送失败 (curl 退出码: ${curl_exit_code}): ${curl_response}"
         return "${curl_exit_code}"
     fi
 
@@ -244,11 +244,11 @@ send_notifymux() {
     response_body="${curl_response%$'\n'HTTP_STATUS:*}"
 
     if [[ "${http_status}" == "200" ]]; then
-        log_message "INFO" "NotifyMux 通知发送成功。"
+        log_message "INFO" "SMY Push 通知发送成功。"
         return 0
     fi
 
-    log_message "ERROR" "NotifyMux 通知发送失败。HTTP 状态码: ${http_status}. 响应: ${response_body}"
+    log_message "ERROR" "SMY Push 通知发送失败。HTTP 状态码: ${http_status}. 响应: ${response_body}"
     return 1
 }
 
@@ -317,7 +317,7 @@ run_sync_command() {
         message="任务 '${JOB_NAME}' 预检失败，未执行${mode_label}。源: '${SOURCE_DIR}' -> 目标: '${DEST_DIR}'."
         log_message "ERROR" "${message}"
         if [[ "${dry_run}" != "true" ]]; then
-            send_notifymux "${message}" || true
+            send_smy_push "${message}" || true
         fi
     else
         log_start_line="$(log_line_count)"
@@ -336,7 +336,7 @@ run_sync_command() {
                 if [[ -n "${error_lines}" ]]; then
                     message+=$'\n\n最近错误:\n'"${error_lines}"
                 fi
-                send_notifymux "${message}" || true
+                send_smy_push "${message}" || true
             fi
         fi
     fi
@@ -350,8 +350,8 @@ run_sync_command() {
 run_push_test() {
     local message
 
-    if ! notifymux_configured; then
-        log_message "ERROR" "NotifyMux API Key 未配置，请先填写 NOTIFYMUX_API_KEY。"
+    if ! smy_push_configured; then
+        log_message "ERROR" "SMY Push API Key 未配置，请先填写 SMY_PUSH_API_KEY。"
         exit 1
     fi
 
@@ -360,9 +360,9 @@ run_push_test() {
         exit 1
     fi
 
-    message="rclone-sync push-test 测试消息。任务 '${JOB_NAME}' 已成功连接 NotifyMux。"
+    message="rclone-sync push-test 测试消息。任务 '${JOB_NAME}' 已成功连接 SMY Push。"
     log_message "INFO" "正在执行 push-test。"
-    if send_notifymux "${message}"; then
+    if send_smy_push "${message}"; then
         log_message "INFO" "push-test 成功。"
         printf "push-test succeeded.\n"
         exit 0
@@ -520,8 +520,8 @@ Usage:
 
 Commands:
   sync            Run rclone sync. This is the default when no command is provided.
-  dry-run         Run rclone sync with --dry-run. No NotifyMux failure notification is sent.
-  push-test       Send one NotifyMux test notification. rclone and config are not checked.
+  dry-run         Run rclone sync with --dry-run. No SMY Push failure notification is sent.
+  push-test       Send one SMY Push test notification. rclone and config are not checked.
   install-rclone  Download the latest rclone into the script directory.
   help            Show this help message.
 
@@ -534,7 +534,7 @@ Examples:
 
 Configuration:
   JOB_NAME, RCLONE_PATH, CONFIG_FILE, SOURCE_DIR, DEST_DIR, EXCLUDE_LIST, LOG_DIR,
-  LOCK_FILE, NOTIFY_ERROR_LINES, NOTIFYMUX_API_KEY, NOTIFYMUX_ENDPOINT
+  LOCK_FILE, NOTIFY_ERROR_LINES, SMY_PUSH_API_KEY, SMY_PUSH_ENDPOINT
 EOF
 }
 
