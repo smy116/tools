@@ -41,6 +41,18 @@
       "template": "Invoke-WebRequest -Uri \"{{source:package}}\" -OutFile \".\\vhd-bitlocker.zip\"; Expand-Archive -LiteralPath \".\\vhd-bitlocker.zip\" -DestinationPath \".\" -Force"
     },
     {
+      "id": "vhd-bitlocker-get-rclone",
+      "title": "下载 rclone 主程序",
+      "description": "从 rclone 官方下载 Windows amd64 版，解压出 rclone.exe 放进工具包的 rclone-sync 目录；只在使用 rclone 同步或备份同步套件时需要。",
+      "platform": "Windows",
+      "language": "powershell",
+      "badges": [
+        "按需",
+        "rclone"
+      ],
+      "template": "Invoke-WebRequest -Uri \"https://downloads.rclone.org/rclone-current-windows-amd64.zip\" -OutFile \".\\rclone.zip\"; Expand-Archive -LiteralPath \".\\rclone.zip\" -DestinationPath \".\\rclone-tmp\" -Force; Copy-Item -Path \".\\rclone-tmp\\*\\rclone.exe\" -Destination \".\\vhd-bitlocker\\rclone-sync\\rclone.exe\" -Force; Remove-Item -LiteralPath \".\\rclone-tmp\", \".\\rclone.zip\" -Recurse -Force"
+    },
+    {
       "id": "vhd-bitlocker-edit-config",
       "title": "编辑配置文件",
       "description": "打开 config.ini，把 VhdxPath 改为真实存在的 VHDX 路径；密码、卸载策略等选项可在主菜单里维护。",
